@@ -30,7 +30,7 @@ class Wrapping extends CI_Controller {
         }
 
         /* Simpan log Iot */
-        $this->Wrapping_model->insertIoTLog([
+        $this->rapping_model->insertIoTLog([
             'mac_address' => $mac_address,
             'status_process' => $status,
             'call_status' => 'RECEIVED'

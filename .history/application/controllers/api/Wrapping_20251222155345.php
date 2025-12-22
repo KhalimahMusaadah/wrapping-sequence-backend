@@ -23,23 +23,9 @@ class Wrapping extends CI_Controller {
 
         if (!$mac_address || !$status){
             echo json_encode([
-                'status' => 'ERROR',
-                'message' => 'mac_address dan status wajib'
-            ]);
-            return;
+                'status' => 'ERROR'
+            ])
         }
-
-        /* Simpan log Iot */
-        $this->Wrapping_model->insertIoTLog([
-            'mac_address' => $mac_address,
-            'status_process' => $status,
-            'call_status' => 'RECEIVED'
-        ]);
-
-        echo json_encode([
-            'status' => 'OK',
-            'message' => 'IoT Log berhasil disimpan'
-        ]);
         
     }
 }

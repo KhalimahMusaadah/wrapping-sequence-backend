@@ -38,8 +38,8 @@ class Wrapping extends CI_Controller {
 
         echo json_encode([
             'status' => 'OK',
-            'message' => 'IoT Log berhasil disimpan'
-        ]);
+            'message' => 
+        ])
         
     }
 }

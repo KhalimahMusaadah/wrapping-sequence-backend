@@ -42,11 +42,6 @@ class Wrapping extends CI_Controller {
         ]);
 
         /* Branching */
-        if($status === 'READY') {
-            echo json_encode([
-                
-            ])
-        }
         
     }
 }

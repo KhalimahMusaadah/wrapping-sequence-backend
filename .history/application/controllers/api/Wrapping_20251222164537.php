@@ -41,12 +41,7 @@ class Wrapping extends CI_Controller {
             'message' => 'IoT Log berhasil disimpan'
         ]);
 
-        /* Branching */
-        if($status === 'READY') {
-            echo json_encode([
-                
-            ])
-        }
+        
         
     }
 }

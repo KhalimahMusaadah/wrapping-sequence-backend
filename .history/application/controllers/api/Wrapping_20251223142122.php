@@ -56,8 +56,6 @@ class Wrapping extends CI_Controller {
                  * -FMR masih inside atau udah outside ()
                  * -jika FMR sudah outside, kirim command WRAP
                  */
-
-                
                 break;
             case 'WRAPPING_DONE':
                 log_message('debug', '[BRANCH] IOT WRAPPING_DONE');

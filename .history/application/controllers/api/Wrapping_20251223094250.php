@@ -17,15 +17,10 @@ class Wrapping extends CI_Controller {
     /* POST api/wrapping/process */
     public function process()
     {
-        $raw = $this->input->raw_input_stream;
-        $ip = $this->input->ip_address();
-
-        /* log Request*/
-        log_message('debug', 'IOT REQUEST FROM IP: '.$ip.' | DATA: '.$raw);
-        $input = json_decode($raw, true);
+        $input = json_decode($this->input->raw_input_stream, true);
 
         $mac_address = $input['mac_address'] ?? null;
-        $status = $input['status'] ?? null;
+        $status = $input['status'] ?? null; //buat statusnya IoT ditanyain apakah sudah ada datanya di database atau bikin sendiri
 
         
         if (!$mac_address || !$status){
@@ -39,7 +34,7 @@ class Wrapping extends CI_Controller {
         /* Simpan log Iot */
         $this->Wrapping_model->insertIoTLog([
             'mac_address' => $mac_address,
-            'status' => $status,
+            'status''
             'call_status' => 'RECEIVED'
         ]);
 
@@ -48,29 +43,12 @@ class Wrapping extends CI_Controller {
             'message' => 'IoT Log saved'
         ]);
 
-        switch ($status){
-            case 'READY':
-                log_message('debug', '[BRANCH] IOT READY');
-
-                /**
-                 * -FMR masih inside atau udah outside ()
-                 * -jika FMR sudah outside, kirim command WRAP
-                 */
-
+        // /* Branching */
+        // if($status === 'READY') {
+        //     echo json_encode([
                 
-                break;
-            case 'WRAPPING_DONE':
-                log_message('debug', '[BRANCH] IOT WRAPPING_DONE');
-                /**
-                 * -operasi sequence
-                 * -trigger task FMR
-                 */
-                break;
-            default:
-                log_message('debug', '[BRANCH] IOT STATUS UNKNOWN');
-                break;
-            
-        }
+        //     ])
+        // }
         
     }
 }

@@ -15,14 +15,8 @@ class Wrapping extends CI_Controller {
     }
 
     /* POST api/wrapping/process */
-    public function process()
-    {
-        $raw = $this->input->raw_input_stream;
-        $ip = $this->input->ip_address();
-
-        /* log Request*/
-        log_message('debug', 'IOT REQUEST FROM IP: '.$ip.' | DATA: '.$raw);
-        $input = json_decode($raw, true);
+    public function process(){
+        $input = json_decode($this->input->raw_input_stream, true);
 
         $mac_address = $input['mac_address'] ?? null;
         $status = $input['status'] ?? null;
@@ -36,41 +30,28 @@ class Wrapping extends CI_Controller {
             return;
         }
 
+        /* Default */
+        $event_type = 'STATUS';
+        if ($status === )
+
         /* Simpan log Iot */
         $this->Wrapping_model->insertIoTLog([
             'mac_address' => $mac_address,
-            'status' => $status,
+            'status_process' => $status,
             'call_status' => 'RECEIVED'
         ]);
 
         echo json_encode([
             'status' => 'OK',
-            'message' => 'IoT Log saved'
+            'message' => 'IoT Log berhasil disimpan'
         ]);
 
-        switch ($status){
-            case 'READY':
-                log_message('debug', '[BRANCH] IOT READY');
-
-                /**
-                 * -FMR masih inside atau udah outside ()
-                 * -jika FMR sudah outside, kirim command WRAP
-                 */
-
+        // /* Branching */
+        // if($status === 'READY') {
+        //     echo json_encode([
                 
-                break;
-            case 'WRAPPING_DONE':
-                log_message('debug', '[BRANCH] IOT WRAPPING_DONE');
-                /**
-                 * -operasi sequence
-                 * -trigger task FMR
-                 */
-                break;
-            default:
-                log_message('debug', '[BRANCH] IOT STATUS UNKNOWN');
-                break;
-            
-        }
+        //     ])
+        // }
         
     }
 }

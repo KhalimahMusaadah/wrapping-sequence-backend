@@ -20,7 +20,7 @@ class Wrapping extends CI_Controller {
         $raw = $this->input->raw_input_stream;
         $ip = $this->input->ip_address();
 
-        /* log Request*/
+        //request logging
         log_message('debug', 'IOT REQUEST FROM IP: '.$ip.' | DATA: '.$raw);
         $input = json_decode($raw, true);
 
@@ -48,29 +48,6 @@ class Wrapping extends CI_Controller {
             'message' => 'IoT Log saved'
         ]);
 
-        switch ($status){
-            case 'READY':
-                log_message('debug', '[BRANCH] IOT READY');
-
-                /**
-                 * -FMR masih inside atau udah outside ()
-                 * -jika FMR sudah outside, kirim command WRAP
-                 */
-
-                
-                break;
-            case 'WRAPPING_DONE':
-                log_message('debug', '[BRANCH] IOT WRAPPING_DONE');
-                /**
-                 * -operasi sequence
-                 * -trigger task FMR
-                 */
-                break;
-            default:
-                log_message('debug', '[BRANCH] IOT STATUS UNKNOWN');
-                break;
-            
-        }
         
     }
 }

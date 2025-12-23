@@ -68,16 +68,13 @@ class Wrapping extends CI_Controller {
                  */
                 $seq = $this->Wrapping_model->generateSequence();
 
-                if (!$seq){
-                    log_message('error', '[SEQUENCE] FAILED TO GENERATE');
-                    break;
+                if ($seq){
+                    log_message('debug', '[BRANCH] GENERATED SEQUENCE: '.json_encode($seq));
+                } else {
+                    log_message('error', '[BRANCH] FAILED TO GENERATE SEQUENCE');
                 }
 
-                log_message(
-                    'debug',
-                    '[SEQUENCE] counter='.$seq['counter'].' | sequence='.$seq['sequence'].' | task_id='.$seq['task_id']
-                ); 
-                
+
                 break;
             default:
                 log_message('debug', '[BRANCH] IOT STATUS UNKNOWN');

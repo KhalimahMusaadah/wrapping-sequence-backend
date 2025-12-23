@@ -10,7 +10,7 @@ class Wrapping_model extends CI_Model {
 
     public function generateSequence()
     {
-        $last = $this->db->order_by('id', 'Desc')->limit(1)->get('wrapping_sequence_logs')->row();
+        $last = $this->db->order_by('id', 'Desc')->limit(1)->get('wrapping_sequences')->row();
         
         $counter = $last ? $last->counter + 1 : 1;
 
@@ -34,17 +34,6 @@ class Wrapping_model extends CI_Model {
         if (!$task_id){
             return null;
         }
-
-        $data = [
-            'counter' => $counter,
-            'sequence' => $sequence,
-            'task_id' => $task_id,
-            'map_id' => 1 //sementara
-        ];
-
-        $this->db->insert('wrapping_sequence_logs', $data);
-
-        return $data;
 
     }
 }

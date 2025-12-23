@@ -75,9 +75,10 @@ class Wrapping extends CI_Controller {
 
                 log_message(
                     'debug',
-                    '[SEQUENCE] counter='.$seq['counter'].' | sequence='.$seq['sequence'].' | task_id='.$seq['task_id']
-                ); 
-                
+                    '[SEQUENCE] counter='
+                )
+
+
                 break;
             default:
                 log_message('debug', '[BRANCH] IOT STATUS UNKNOWN');

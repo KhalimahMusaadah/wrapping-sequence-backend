@@ -66,18 +66,9 @@ class Wrapping extends CI_Controller {
                  * -operasi sequence
                  * -trigger task FMR
                  */
-                $seq = $this->Wrapping_model->generateSequence();
+                $seq = 
 
-                if (!$seq){
-                    log_message('error', '[SEQUENCE] FAILED TO GENERATE');
-                    break;
-                }
 
-                log_message(
-                    'debug',
-                    '[SEQUENCE] counter='.$seq['counter'].' | sequence='.$seq['sequence'].' | task_id='.$seq['task_id']
-                ); 
-                
                 break;
             default:
                 log_message('debug', '[BRANCH] IOT STATUS UNKNOWN');

@@ -8,36 +8,6 @@ class Wrapping_model extends CI_Model {
         return $this->db->insert('iot_communication_logs', $data);
     }
 
-    /* cegah double wrap */
-    public function hasActiveWrapCommand($mac_address)
-    {
-        return $this->db->where('mac_address', $mac_address)
-                        ->where('status', 'WRAP')
-                        ->where_in('call_status', ['TRANSMIT', 'SENT'])
-                        ->get('iot_communication_logs')
-                        ->row();
-    }
-
-    /* backend trigger IoT */
-    public function insertWrapCommand($mac_address)
-    {
-        return $this->insertIoTLog([
-            'mac_address' => $mac_address,
-            'status' => 'WRAP',
-            'call_status' => 'TRANSMIT'
-        ]);
-    }
-
-    /* tutup command WRAP yang aktif */
-    public function closeActiveWrapCommand($mac_address)
-    {
-        return $this->db->where('mac_address', $mac_address)
-                        ->where('status', 'WRAP')
-                        ->where('call_status', 'TRANSMIT')
-                        ->set('call_status', 'DONE')
-                        ->update('iot_communication_logs');
-    }
-
     public function generateSequence()
     {
         $today = date('Y-m-d');
@@ -50,7 +20,7 @@ class Wrapping_model extends CI_Model {
         } else {
             $lastDate = date('Y-m-d', strtotime($last->created_at));
             if ($lastDate !== $today){
-                /* ganti hari, reset counter */
+                /*reset ke-1*/
                 $counter = 1;
             } else {
                 /* masih hari yang sama */
@@ -58,7 +28,7 @@ class Wrapping_model extends CI_Model {
             }
         }
 
-        //$counter = $last ? $last->counter + 1 : 1;
+        $counter = $last ? $last->counter + 1 : 1;
 
         $sequence = (($counter - 1) % 6) + 1;
 
@@ -68,15 +38,15 @@ class Wrapping_model extends CI_Model {
          */
 
         $taskMap = [
-            1 => 101, /* sequence 1 -> task_id 101 */
+            1 => 101, //sequence 1 -> task_id 101
             2 => 102,
             3 => 103,
             4 => 104,
             5 => 105,
             6 => 106 
         ];
+        $task_id = $taskMap[$sequence];
 
-        $task_id = $taskMap[$sequence] ?? null;
         if (!$task_id){
             return null;
         }

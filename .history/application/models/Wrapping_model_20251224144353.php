@@ -13,7 +13,7 @@ class Wrapping_model extends CI_Model {
     {
         return $this->db->where('mac_address', $mac_address)
                         ->where('status', 'WRAP')
-                        ->where_in('call_status', ['TRANSMIT', 'SENT'])
+                        ->where_IN('call_status', 'TRANSMIT')
                         ->get('iot_communication_logs')
                         ->row();
     }

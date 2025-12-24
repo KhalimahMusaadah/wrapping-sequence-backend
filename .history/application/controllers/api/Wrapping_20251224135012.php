@@ -84,9 +84,7 @@ class Wrapping extends CI_Controller {
                  */
 
                 //tutup command WRAP yang aktif
-                $this->Wrapping_model->closeActiveWrapCommand($mac_address);
-
-                //operasi sequence
+                $this-
                 $seq = $this->Wrapping_model->generateSequence();
 
                 if (!$seq){
@@ -116,7 +114,7 @@ class Wrapping extends CI_Controller {
     {
         $mac_address = $this->input->get('mac_address');
 
-        if (!$mac_address){
+        if ($mac_address){
             echo json_encode(['command' => null]);
             return;
         }
@@ -129,14 +127,6 @@ class Wrapping extends CI_Controller {
                     ->limit(1)
                     ->get('iot_communication_logs')
                     ->row();
-        
-        //command sudah diambil IoT
-        if ($cmd){
-            $this->db->where('id', $cmd->id)
-                     ->update('iot_communication_logs', [
-                         'call_status' => 'SENT'
-                     ]);
-            }
 
         echo json_encode([
             'command' => $cmd ? $cmd->status : null

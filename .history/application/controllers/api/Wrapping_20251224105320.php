@@ -82,11 +82,6 @@ class Wrapping extends CI_Controller {
                  * -operasi sequence
                  * -trigger task FMR
                  */
-
-                //tutup command WRAP yang aktif
-                $this->Wrapping_model->closeActiveWrapCommand($mac_address);
-
-                //operasi sequence
                 $seq = $this->Wrapping_model->generateSequence();
 
                 if (!$seq){
@@ -97,49 +92,15 @@ class Wrapping extends CI_Controller {
                 log_message(
                     'debug',
                     '[SEQUENCE] counter='.$seq['counter'].
-                    ' | sequence='.$seq['sequence'].
-                    ' | task_id='.$seq['task_id']
+                    ' | sequence='.$seq['sequence'].' | task_id='.$seq['task_id']
                 ); 
                 
                 break;
-
             default:
                 log_message('debug', '[BRANCH] IOT STATUS UNKNOWN');
                 break;
             
         }
         
-    }
-
-    /* GET api/wrapping/command */
-    public function command()
-    {
-        $mac_address = $this->input->get('mac_address');
-
-        if (!$mac_address){
-            echo json_encode(['command' => null]);
-            return;
-        }
-
-        $cmd = $this->db
-                    ->where('mac_address', $mac_address)
-                    ->where('status', 'WRAP')
-                    ->where('call_status', 'TRANSMIT')
-                    ->order_by('id', 'ASC')
-                    ->limit(1)
-                    ->get('iot_communication_logs')
-                    ->row();
-        
-        //command sudah diambil IoT
-        if ($cmd){
-            $this->db->where('id', $cmd->id)
-                     ->update('iot_communication_logs', [
-                         'call_status' => 'SENT'
-                     ]);
-            }
-
-        echo json_encode([
-            'command' => $cmd ? $cmd->status : null
-        ]);
     }
 }

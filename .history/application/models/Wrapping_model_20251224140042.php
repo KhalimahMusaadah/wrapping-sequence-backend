@@ -13,7 +13,7 @@ class Wrapping_model extends CI_Model {
     {
         return $this->db->where('mac_address', $mac_address)
                         ->where('status', 'WRAP')
-                        ->where_in('call_status', ['TRANSMIT', 'SENT'])
+                        ->where('call_status', 'TRANSMIT')
                         ->get('iot_communication_logs')
                         ->row();
     }
@@ -35,7 +35,10 @@ class Wrapping_model extends CI_Model {
                         ->where('status', 'WRAP')
                         ->where('call_status', 'TRANSMIT')
                         ->set('call_status', 'DONE')
-                        ->update('iot_communication_logs');
+                        ->update('iot_communication_logs', [
+                            'call_status' => 'COMPLETED',
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]);
     }
 
     public function generateSequence()

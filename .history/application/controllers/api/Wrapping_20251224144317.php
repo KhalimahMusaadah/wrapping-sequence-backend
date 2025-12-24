@@ -134,7 +134,7 @@ class Wrapping extends CI_Controller {
         if ($cmd){
             $this->db->where('id', $cmd->id)
                      ->update('iot_communication_logs', [
-                         'call_status' => 'SENT'
+                         'call_status' => 'RECEIVED'
                      ]);
             }
 

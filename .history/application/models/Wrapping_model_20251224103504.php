@@ -9,34 +9,16 @@ class Wrapping_model extends CI_Model {
     }
 
     /* cegah double wrap */
-    public function hasActiveWrapCommand($mac_address)
-    {
+    public function hasActiveWrapCommand()
+
         return $this->db->where('mac_address', $mac_address)
                         ->where('status', 'WRAP')
-                        ->where_in('call_status', ['TRANSMIT', 'SENT'])
+                        ->where('call_status', 'TRANSMIT')
                         ->get('iot_communication_logs')
                         ->row();
     }
 
-    /* backend trigger IoT */
-    public function insertWrapCommand($mac_address)
-    {
-        return $this->insertIoTLog([
-            'mac_address' => $mac_address,
-            'status' => 'WRAP',
-            'call_status' => 'TRANSMIT'
-        ]);
-    }
 
-    /* tutup command WRAP yang aktif */
-    public function closeActiveWrapCommand($mac_address)
-    {
-        return $this->db->where('mac_address', $mac_address)
-                        ->where('status', 'WRAP')
-                        ->where('call_status', 'TRANSMIT')
-                        ->set('call_status', 'DONE')
-                        ->update('iot_communication_logs');
-    }
 
     public function generateSequence()
     {

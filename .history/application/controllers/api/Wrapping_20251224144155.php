@@ -132,11 +132,8 @@ class Wrapping extends CI_Controller {
         
         //command sudah diambil IoT
         if ($cmd){
-            $this->db->where('id', $cmd->id)
-                     ->update('iot_communication_logs', [
-                         'call_status' => 'SENT'
-                     ]);
-            }
+            
+        }
 
         echo json_encode([
             'command' => $cmd ? $cmd->status : null

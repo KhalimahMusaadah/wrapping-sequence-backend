@@ -7,7 +7,7 @@ class Wrapping extends CI_Controller {
      * buat FMR inside atau outside sudah ada programnya, dari program itu nyimpan status in atau out, lalu dari backend ambil data nya terus ngetrigger IoT untuk mulai wrapping kah atau bagaimana?
      * 
      */
-    /** Kurang:
+    /**
      * IP Address IoT FMR
      */
 

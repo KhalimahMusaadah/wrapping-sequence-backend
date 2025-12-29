@@ -7,7 +7,7 @@ class Wrapping extends CI_Controller {
      * buat FMR inside atau outside sudah ada programnya, dari program itu nyimpan status in atau out, lalu dari backend ambil data nya terus ngetrigger IoT untuk mulai wrapping kah atau bagaimana?
      * 
      */
-    /** Kurang:
+    /** Kurang:z
      * IP Address IoT FMR
      */
 
@@ -57,7 +57,7 @@ class Wrapping extends CI_Controller {
 
         switch ($status){
             case 'READY':
-                log_message('debug', '[BRANCH] CEK FMR INSIDE/OUTSIDE');
+                log_message('debug', '[BRANCH] IOT READY');
 
                 /**
                  * -Sementara FMR anggap outside 

@@ -57,7 +57,7 @@ class Wrapping extends CI_Controller {
 
         switch ($status){
             case 'READY':
-                log_message('debug', '[BRANCH] CEK FMR INSIDE/OUTSIDE');
+                log_message('debug', '[BRANCH] CEK ');
 
                 /**
                  * -Sementara FMR anggap outside 

@@ -16,7 +16,6 @@ class Wrapping extends CI_Controller {
         parent::__construct();
         $this->load->database();
         $this->load->model('Wrapping_model');
-        $this->load->library('cekpoint');
         header('Content-Type: application/json');
         header('Access-Control-Allow-Origin: *');
         //header('Access-Control-Allow-Methods: POST, GET');
@@ -58,40 +57,23 @@ class Wrapping extends CI_Controller {
 
         switch ($status){
             case 'READY':
-                log_message('debug', '[BRANCH] READY - CEK FMR POSITION');
+                log_message('debug', '[BRANCH] CEK FMR INSIDE/OUTSIDE');
 
                 /**
                  * -Sementara FMR anggap outside 
                  * -jika FMR sudah outside, kirim command WRAP
                  */
 
-                //koordinat FMR yang dikirim oleh IoT
-                $lat = $input['lat'] ?? null;
-                $lon = $input['lon'] ?? null;
-                if (!$lat || !$lon){
-                    log_message('error', '[FMR] LAT/LON NOT FOUND');
-                    break;
-                }
+                $fmr_position = 'OUTSIDE';
 
-                //cek inside/outside
-                log_message(
-                    'debug',
-                    '[CHECKPOINT] status='.$fmr['status'].
-                    ' | distance='.$fmr['distance']
-                );
-
-                if ($fmr['status'] === 'OUTSIDE'){
+                if ($fmr_position === 'OUTSIDE'){
                     //cek double wrap
                     $activeWrap = $this->Wrapping_model->hasActiveWrapCommand($mac_address);
-
                     if (!$activeWrap){
                         $this->Wrapping_model->insertWrapCommand($mac_address);
-                        log_message('debug', '[WRAP] COMMAND INSERTED');
                     } else {
                         log_message('debug', '[DOUBLE WRAP] Command WRAP already active for mac_address='.$mac_address);
                     }
-                } else {
-                    log_message('debug', '[FMR] INSIDE - NO WRAP COMMAND SENT');
                 }
 
                 break;

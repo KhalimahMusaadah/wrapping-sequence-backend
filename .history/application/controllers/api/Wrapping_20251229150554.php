@@ -16,7 +16,7 @@ class Wrapping extends CI_Controller {
         parent::__construct();
         $this->load->database();
         $this->load->model('Wrapping_model');
-        $this->load->library('cekpoint');
+        $this->load->library('ekpoint');
         header('Content-Type: application/json');
         header('Access-Control-Allow-Origin: *');
         //header('Access-Control-Allow-Methods: POST, GET');

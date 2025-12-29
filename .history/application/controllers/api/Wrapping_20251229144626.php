@@ -83,15 +83,11 @@ class Wrapping extends CI_Controller {
                 if ($fmr['status'] === 'OUTSIDE'){
                     //cek double wrap
                     $activeWrap = $this->Wrapping_model->hasActiveWrapCommand($mac_address);
-
                     if (!$activeWrap){
                         $this->Wrapping_model->insertWrapCommand($mac_address);
-                        log_message('debug', '[WRAP] COMMAND INSERTED');
                     } else {
                         log_message('debug', '[DOUBLE WRAP] Command WRAP already active for mac_address='.$mac_address);
                     }
-                } else {
-                    log_message('debug', '[FMR] INSIDE - NO WRAP COMMAND SENT');
                 }
 
                 break;

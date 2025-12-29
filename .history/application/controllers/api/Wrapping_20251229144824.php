@@ -90,8 +90,6 @@ class Wrapping extends CI_Controller {
                     } else {
                         log_message('debug', '[DOUBLE WRAP] Command WRAP already active for mac_address='.$mac_address);
                     }
-                } else {
-                    log_message('debug', '[FMR] INSIDE - NO WRAP COMMAND SENT');
                 }
 
                 break;

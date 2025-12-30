@@ -2,14 +2,14 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Wrapping_model extends CI_Model {
-    //IoT Communication Logs
+    //Io
     public function insertIoTLog($data)
     {
         $data['datetime'] = date('Y-m-d H:i:s');
         return $this->db->insert('iot_communication_logs', $data);
     }
 
-    //Cegah double WRAP
+    /* Cegah double WRAP */
     public function hasActiveWrapCommand($mac_address)
     {
         return $this->db->where('mac_address', $mac_address)
@@ -19,7 +19,7 @@ class Wrapping_model extends CI_Model {
                         ->row();
     }
 
-    //Backend trigger IoT
+    /* Backend trigger IoT */
     public function insertWrapCommand($mac_address)
     {
         return $this->insertIoTLog([
@@ -29,7 +29,7 @@ class Wrapping_model extends CI_Model {
         ]);
     }
 
-    //Tutup command WRAP aktif
+    /* Tutup command WRAP aktif */
     public function closeActiveWrapCommand($mac_address)
     {
         return $this->db->where('mac_address', $mac_address)
@@ -40,7 +40,10 @@ class Wrapping_model extends CI_Model {
                         ]);
     }
 
-    //Wrapping sequence 
+    /* =========================
+     * WRAPPING SEQUENCE
+     * ========================= */
+
     public function generateSequence($mac_address)
     {
         $today = date('Y-m-d');

@@ -29,7 +29,7 @@ class Wrapping_model extends CI_Model {
         ]);
     }
 
-    //Tutup command WRAP aktif
+    //Tutup command WRAP aktif */
     public function closeActiveWrapCommand($mac_address)
     {
         return $this->db->where('mac_address', $mac_address)
@@ -40,7 +40,10 @@ class Wrapping_model extends CI_Model {
                         ]);
     }
 
-    //Wrapping sequence 
+    /* =========================
+     * WRAPPING SEQUENCE
+     * ========================= */
+
     public function generateSequence($mac_address)
     {
         $today = date('Y-m-d');

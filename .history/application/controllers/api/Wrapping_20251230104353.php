@@ -40,15 +40,12 @@ class Wrapping extends CI_Controller {
             //status READY
             case 'READY':
 
-                //ini nanti api 10.8.128.37 diadiin API
-
                 // Cegah double WRAP
                 if (!$this->Wrapping_model->hasActiveWrapCommand($mac_address)){
                     $this->Wrapping_model->insertWrapCommand($mac_address);
                 }
                 break;
-            
-            //status WRAPPING_DONE
+
             case 'WRAPPING_DONE':
 
                 // Tutup command WRAP yang aktif
@@ -74,7 +71,9 @@ class Wrapping extends CI_Controller {
         echo json_encode(['status' => 'OK']);
     }
 
-    //GET api/wrapping/command
+    /* =========================
+     * GET api/wrapping/command
+     * ========================= */
     public function command()
     {
         $mac_address = $this->input->get('mac_address');

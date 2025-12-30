@@ -40,7 +40,7 @@ class Wrapping_model extends CI_Model {
                         ]);
     }
 
-    //Wrapping sequence 
+    //Wrapping sequence
     public function generateSequence($mac_address)
     {
         $today = date('Y-m-d');

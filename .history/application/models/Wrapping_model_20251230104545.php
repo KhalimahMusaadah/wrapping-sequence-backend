@@ -39,8 +39,8 @@ class Wrapping_model extends CI_Model {
                             'call_status' => 'DONE'
                         ]);
     }
+    
 
-    //Wrapping sequence 
     public function generateSequence($mac_address)
     {
         $today = date('Y-m-d');

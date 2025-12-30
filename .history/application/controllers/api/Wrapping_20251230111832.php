@@ -39,8 +39,7 @@ class Wrapping extends CI_Controller {
         switch ($status){
             //status READY
             case 'READY':
-
-                //ini nanti api 10.8.128.37 diadiin API
+                
 
                 // Cegah double WRAP
                 if (!$this->Wrapping_model->hasActiveWrapCommand($mac_address)){

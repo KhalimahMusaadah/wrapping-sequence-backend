@@ -93,22 +93,13 @@ class Wrapping_model extends CI_Model {
 
         return $data;
     }
+    
 
-    //update status sequence
     public function updateSequenceStatus($sequence_id, $status)
     {
         return $this->db->where('id', $sequence_id)
                         ->update('wrapping_sequence_logs', [
                             'status' => $status
                         ]);
-    }
-
-    //cek apa ada sequence yg masih OPEN
-    public function hasOpenSequence($mac_address)
-    {
-        return $this->db->where('mac_address', $mac_address)
-                        ->where('status', 'OPEN')
-                        ->get('wrapping_sequence_logs')
-                        ->row();
     }
 }

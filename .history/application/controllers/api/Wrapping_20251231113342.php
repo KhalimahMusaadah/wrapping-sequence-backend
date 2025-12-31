@@ -1,4 +1,7 @@
 <?php
+
+////ini nanti api 10.8.128.37 diadiin API
+
 defined('BASEPATH') OR exit('No direct script access allowed');
 require_once APPPATH . 'libraries/cekpoint.php';
 
@@ -197,7 +200,7 @@ class Wrapping extends CI_Controller {
 
     /**
      * GET api/wrapping/command?mac_address=xxx
-     * IoT megnambil command dari backend
+     * 
      */
     //GET api/wrapping/command
     public function command()
@@ -228,51 +231,6 @@ class Wrapping extends CI_Controller {
 
         echo json_encode([
             'command' => $cmd ? $cmd->status : null
-        ]);
-    }
-    /**
-     * GET api/wrapping/check_zone
-     * Cek apakah FMR berada di dalam zona wrapping
-     * 
-     * Request body:
-     * {
-     *   "fmr_x": -61.5,
-     *   "fmr_y": 4.5
-     * }
-     */
-    public function check_zone()
-    {
-        $raw   = $this->input->raw_input_stream;
-        $input = json_decode($raw, true);
-
-        $fmr_x = $input['fmr_x'] ?? null;
-        $fmr_y = $input['fmr_y'] ?? null;
-
-        if ($fmr_x === null || $fmr_y === null){
-            echo json_encode([
-                'status'  => 'ERROR',
-                'message' => 'fmr_x & fmr_y required'
-            ]);
-            return;
-        }
-
-        $currentPos = "$fmr_x $fmr_y";
-        $check = $this->pointChecker->checkFMRWrappingZone(
-            $currentPos, 
-            null,
-            $this->wrappingPoint,
-            $this->wrappingRadius
-        );
-
-        echo json_encode([
-            'status' => 'OK',
-            'wrapping_point' => $this->wrappingPoint,
-            'radius' => $this->wrappingRadius,
-            'fmr_position' => [
-                'x' => $fmr_x,
-                'y' => $fmr_y
-            ],
-            'zone_check' => $check
         ]);
     }
 }

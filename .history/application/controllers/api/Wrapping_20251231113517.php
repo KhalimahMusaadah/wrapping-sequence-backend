@@ -1,4 +1,7 @@
 <?php
+
+////ini nanti api 10.8.128.37 diadiin API
+
 defined('BASEPATH') OR exit('No direct script access allowed');
 require_once APPPATH . 'libraries/cekpoint.php';
 
@@ -240,6 +243,7 @@ class Wrapping extends CI_Controller {
      *   "fmr_y": 4.5
      * }
      */
+    //GET api/wrapping/check_zone  
     public function check_zone()
     {
         $raw   = $this->input->raw_input_stream;

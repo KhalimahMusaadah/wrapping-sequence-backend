@@ -1,6 +1,5 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
-
 class pointLocation
 {
     var $pointOnVertex = true; // Check if the point sits exactly on one of the vertices?

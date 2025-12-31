@@ -1,4 +1,7 @@
 <?php
+
+////ini nanti api 10.8.128.37 diadiin API
+
 defined('BASEPATH') OR exit('No direct script access allowed');
 require_once APPPATH . 'libraries/cekpoint.php';
 
@@ -101,22 +104,40 @@ class Wrapping extends CI_Controller {
                     // Cek apakah sudah ada command WRAP aktif
                     if (!$this->Wrapping_model->hasActiveWrapCommand($mac_address)){
                         
-                        // Insert command WRAP (tanpa generate sequence dulu)
-                        $this->Wrapping_model->insertWrapCommand($mac_address);
+                        // Cek apakah ada sequence yang belum selesai
+                        $openSeq = $this->Wrapping_model->hasOpenSequence($mac_address);
                         
-                        log_message('info', sprintf(
-                            "[WRAP TRIGGERED] MAC: %s | FMR is OUTSIDE (%.3fm) | WRAP command sent",
-                            $mac_address,
-                            $check['distance']
-                        ));
+                        if (!$openSeq) {
+                            // Generate sequence baru
+                            $seq = $this->Wrapping_model->generateSequence($mac_address);
+                            
+                            if ($seq) {
+                                // Insert command WRAP
+                                $this->Wrapping_model->insertWrapCommand($mac_address, $seq['id']);
+                                
+                                log_message('info', sprintf(
+                                    "[WRAP TRIGGERED] MAC: %s | FMR is OUTSIDE (%.3fm) | Sequence: %d | Task ID: %d",
+                                    $mac_address,
+                                    $check['distance'],
+                                    $seq['sequence'],
+                                    $seq['task_id']
+                                ));
 
-                        echo json_encode([
-                            'status' => 'OK',
-                            'message' => 'WRAP command sent - FMR is outside wrapping zone',
-                            'zone_check' => $check
-                        ]);
-                        return;
-                        
+                                echo json_encode([
+                                    'status' => 'OK',
+                                    'message' => 'WRAP command sent - FMR is outside wrapping zone',
+                                    'zone_check' => $check,
+                                    'sequence' => $seq
+                                ]);
+                                return;
+                            }
+                        } else {
+                            log_message('warning', sprintf(
+                                "[WRAP SKIPPED] MAC: %s has open sequence ID: %d",
+                                $mac_address,
+                                $openSeq->id
+                            ));
+                        }
                     } else {
                         log_message('warning', sprintf(
                             "[WRAP SKIPPED] MAC: %s already has active WRAP command",
@@ -125,50 +146,42 @@ class Wrapping extends CI_Controller {
                     }
                     
                 } else {
-                    // FMR masih INSIDE zona wrapping
+                    // FMR masih inside zona wrapping
                     log_message('info', sprintf(
-                        "[WRAP PENDING] MAC: %s | FMR still INSIDE wrapping zone (%.3fm)",
+                        "[NO WRAP] MAC: %s | FMR is INSIDE (%.3fm)",
                         $mac_address,
                         $check['distance']
                     ));
 
                     echo json_encode([
                         'status' => 'OK',
-                        'message' => 'Waiting for FMR to leave wrapping zone',
+                        'message' => 'FMR is still inside wrapping zone',
                         'zone_check' => $check
                     ]);
                     return;
                 }
 
                 break;
-    
-
+                
+                // Cegah double WRAP
+                if (!$this->Wrapping_model->hasActiveWrapCommand($mac_address)){
+                    $this->Wrapping_model->insertWrapCommand($mac_address);
+                }
+                break;
+            
             //status WRAPPING_DONE
             case 'WRAPPING_DONE':
-                
+
                 // Tutup command WRAP yang aktif
                 $this->Wrapping_model->closeActiveWrapCommand($mac_address);
 
-                // Generate sequence wrapping SETELAH wrapping selesai
+                // Generate sequence wrapping
                 $seq = $this->Wrapping_model->generateSequence($mac_address);
 
                 if (!$seq){
-                    log_message('error', '[SEQUENCE] FAILED to generate');
-                    
-                    echo json_encode([
-                        'status' => 'ERROR',
-                        'message' => 'Failed to generate wrapping sequence'
-                    ]);
-                    return;
+                    log_message('error', '[SEQUENCE] FAILED');
+                    break;
                 }
-
-                log_message('info', sprintf(
-                    "[WRAPPING COMPLETED] MAC: %s | Sequence: %d | Task ID: %d | Counter: %d",
-                    $mac_address,
-                    $seq['sequence'],
-                    $seq['task_id'],
-                    $seq['counter']
-                ));
 
                 /**
                  * TODO (next step):
@@ -176,29 +189,12 @@ class Wrapping extends CI_Controller {
                  * lalu update status -> DONE / FAILED
                  */
 
-                echo json_encode([
-                    'status' => 'OK',
-                    'message' => 'Wrapping completed and sequence generated',
-                    'sequence' => [
-                        'id' => $seq['id'],
-                        'counter' => $seq['counter'],
-                        'sequence' => $seq['sequence'],
-                        'task_id' => $seq['task_id'],
-                        'map_id' => $seq['map_id']
-                    ]
-                ]);
-                return;
-
                 break;
         }
 
         echo json_encode(['status' => 'OK']);
     }
 
-    /**
-     * GET api/wrapping/command?mac_address=xxx
-     * IoT megnambil command dari backend
-     */
     //GET api/wrapping/command
     public function command()
     {
@@ -228,51 +224,6 @@ class Wrapping extends CI_Controller {
 
         echo json_encode([
             'command' => $cmd ? $cmd->status : null
-        ]);
-    }
-    /**
-     * GET api/wrapping/check_zone
-     * Cek apakah FMR berada di dalam zona wrapping
-     * 
-     * Request body:
-     * {
-     *   "fmr_x": -61.5,
-     *   "fmr_y": 4.5
-     * }
-     */
-    public function check_zone()
-    {
-        $raw   = $this->input->raw_input_stream;
-        $input = json_decode($raw, true);
-
-        $fmr_x = $input['fmr_x'] ?? null;
-        $fmr_y = $input['fmr_y'] ?? null;
-
-        if ($fmr_x === null || $fmr_y === null){
-            echo json_encode([
-                'status'  => 'ERROR',
-                'message' => 'fmr_x & fmr_y required'
-            ]);
-            return;
-        }
-
-        $currentPos = "$fmr_x $fmr_y";
-        $check = $this->pointChecker->checkFMRWrappingZone(
-            $currentPos, 
-            null,
-            $this->wrappingPoint,
-            $this->wrappingRadius
-        );
-
-        echo json_encode([
-            'status' => 'OK',
-            'wrapping_point' => $this->wrappingPoint,
-            'radius' => $this->wrappingRadius,
-            'fmr_position' => [
-                'x' => $fmr_x,
-                'y' => $fmr_y
-            ],
-            'zone_check' => $check
         ]);
     }
 }

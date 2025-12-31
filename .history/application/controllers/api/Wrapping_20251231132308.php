@@ -1,4 +1,6 @@
 <?php
+
+////ini nanti api 10.8.128.37 diadiin API
 defined('BASEPATH') OR exit('No direct script access allowed');
 require_once APPPATH . 'libraries/cekpoint.php';
 

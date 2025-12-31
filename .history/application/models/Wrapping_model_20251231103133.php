@@ -102,13 +102,4 @@ class Wrapping_model extends CI_Model {
                             'status' => $status
                         ]);
     }
-
-    //cek apa ada sequence yg masih OPEN
-    public function hasOpenSequence($mac_address)
-    {
-        return $this->db->where('mac_address', $mac_address)
-                        ->where('status', 'OPEN')
-                        ->get('wrapping_sequence_logs')
-                        ->row();
-    }
 }

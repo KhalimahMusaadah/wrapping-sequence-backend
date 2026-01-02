@@ -13,6 +13,8 @@ class Wrapping extends CI_Controller {
 
     /**
      * POST api/wrapping/ready
+     * IoT Wrapping mengirim status READY
+     * Body JSON:
      * {
      *   "mac_address": "AA:BB:CC:DD:EE:FF",
      *   "status": "READY"

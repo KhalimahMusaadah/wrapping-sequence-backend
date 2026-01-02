@@ -1,0 +1,277 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+require_once APPPATH . 'libraries/cekpoint.php';
+
+class Wrapping extends CI_Controller {
+
+    private $pointChecker;
+    private $wrappingPoint = "-60.37 4.603";
+    private $wrappingRadius = 1.3;
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->load->database();
+        $this->load->model('Wrapping_model');
+        $this->pointChecker = new pointLocation();
+        header('Content-Type: application/json');
+        header('Access-Control-Allow-Origin: *');
+    }
+
+    /**
+     * POST api/wrapping/process 
+     * IoT mengirim status READY atau WRAPPING_DONE
+     * 
+     * Request body untuk READY:
+     * {
+     *   "mac_address": "AA:BB:CC:DD:EE:FF",
+     *   "status": "READY",
+     *   "fmr_x": -61.5,
+     *   "fmr_y": 4.5
+     * }
+     * 
+     * Request body untuk WRAPPING_DONE
+     * {
+     *  "mac_address": "AA:BB:CC:DD:EE:FF",
+     *  "status": "WRAPPING_DONE"
+     * }
+     */
+
+    //POST api/wrapping/process
+    public function process()
+    {
+        $raw   = $this->input->raw_input_stream;
+        $input = json_decode($raw, true);
+
+        $mac_address = $input['mac_address'] ?? null;
+        $status      = $input['status'] ?? null;
+
+        if (!$mac_address || !$status){
+            echo json_encode([
+                'status'  => 'ERROR',
+                'message' => 'mac_address & status required'
+            ]);
+            return;
+        }
+
+        //simpan log komunikasi IoT
+        $this->Wrapping_model->insertIoTLog([
+            'mac_address' => $mac_address,
+            'status'      => $status,
+            'call_status' => 'RECEIVED'
+        ]);
+
+        switch ($status){
+            case 'READY':
+
+                //Ambil posisi FMR dari request
+                $fmr_x = $input['fmr_x'] ?? null;
+                $fmr_y = $input['fmr_y'] ?? null;
+
+                if($fmr_x === null || $fmr_y === null){
+                    echo json_encode([
+                        'status'  => 'ERROR',
+                        'message' => 'fmr_x & fmr_y required when status is READY'
+                    ]);
+                    return;
+                }
+
+                //Cek posisi FMR menggunakan cekpoint.php
+                $currentPos = "$fmr_x $fmr_y";
+                $check = $this->pointChecker->checkFMRWrappingZone(
+                    $currentPos, 
+                    null, // tidak perlu previous position untuk cek READY
+                    $this->wrappingPoint,
+                    $this->wrappingRadius
+                );
+
+                log_message('info', sprintf(
+                    "[READY] MAC: %s | FMR Position: (%.3f, %.3f) | Zone Status: %s | Distance: %.3fm",
+                    $mac_address,
+                    $fmr_x,
+                    $fmr_y,
+                    $check['status'],
+                    $check['distance']
+                ));
+
+                // CEK: Apakah FMR sudah OUTSIDE zona wrapping?
+                if ($check['status'] === 'outside') {
+                    
+                    // Cek apakah sudah ada command WRAP aktif
+                    if (!$this->Wrapping_model->hasActiveWrapCommand($mac_address)){
+                        
+                        // Insert command WRAP (tanpa generate sequence dulu)
+                        $this->Wrapping_model->insertWrapCommand($mac_address);
+                        
+                        log_message('info', sprintf(
+                            "[WRAP TRIGGERED] MAC: %s | FMR is OUTSIDE (%.3fm) | WRAP command sent",
+                            $mac_address,
+                            $check['distance']
+                        ));
+
+                        echo json_encode([
+                            'status' => 'OK',
+                            'message' => 'WRAP command sent - FMR is outside wrapping zone',
+                            'zone_check' => $check
+                        ]);
+                        return;
+                        
+                    } else {
+                        log_message('warning', sprintf(
+                            "[WRAP SKIPPED] MAC: %s already has active WRAP command",
+                            $mac_address
+                        ));
+                    }
+                    
+                } else {
+                    // FMR masih INSIDE zona wrapping
+                    log_message('info', sprintf(
+                        "[WRAP PENDING] MAC: %s | FMR still INSIDE wrapping zone (%.3fm)",
+                        $mac_address,
+                        $check['distance']
+                    ));
+
+                    echo json_encode([
+                        'status' => 'OK',
+                        'message' => 'Waiting for FMR to leave wrapping zone',
+                        'zone_check' => $check
+                    ]);
+                    return;
+                }
+
+                break;
+    
+
+            //status WRAPPING_DONE
+            case 'WRAPPING_DONE':
+                
+                // Tutup command WRAP yang aktif
+                $this->Wrapping_model->closeActiveWrapCommand($mac_address);
+
+                // Generate sequence wrapping SETELAH wrapping selesai
+                $seq = $this->Wrapping_model->generateSequence($mac_address);
+
+                if (!$seq){
+                    log_message('error', '[SEQUENCE] FAILED to generate');
+                    
+                    echo json_encode([
+                        'status' => 'ERROR',
+                        'message' => 'Failed to generate wrapping sequence'
+                    ]);
+                    return;
+                }
+
+                log_message('info', sprintf(
+                    "[WRAPPING COMPLETED] MAC: %s | Sequence: %d | Task ID: %d | Counter: %d",
+                    $mac_address,
+                    $seq['sequence'],
+                    $seq['task_id'],
+                    $seq['counter']
+                ));
+
+                /**
+                 * TODO (next step):
+                 * trigger API FMR pakai $seq['task_id']
+                 * lalu update status -> DONE / FAILED
+                 */
+
+                echo json_encode([
+                    'status' => 'OK',
+                    'message' => 'Wrapping completed and sequence generated',
+                    'sequence' => [
+                        'id' => $seq['id'],
+                        'counter' => $seq['counter'],
+                        'sequence' => $seq['sequence'],
+                        'task_id' => $seq['task_id'],
+                        'map_id' => $seq['map_id']
+                    ]
+                ]);
+                return;
+
+                break;
+        }
+
+        echo json_encode(['status' => 'OK']);
+    }
+
+    /**
+     * GET api/wrapping/command?mac_address=xxx
+     * IoT megnambil command dari backend
+     */
+    //GET api/wrapping/command
+    public function command()
+    {
+        $mac_address = $this->input->get('mac_address');
+
+        if (!$mac_address){
+            echo json_encode(['command' => null]);
+            return;
+        }
+
+        $cmd = $this->db
+            ->where('mac_address', $mac_address)
+            ->where('status', 'WRAP')
+            ->where('call_status', 'TRANSMIT')
+            ->order_by('id', 'ASC')
+            ->limit(1)
+            ->get('iot_communication_logs')
+            ->row();
+
+        // IoT sudah ambil command
+        if ($cmd){
+            $this->db->where('id', $cmd->id)
+                     ->update('iot_communication_logs', [
+                         'call_status' => 'SENT'
+                     ]);
+        }
+
+        echo json_encode([
+            'command' => $cmd ? $cmd->status : null
+        ]);
+    }
+    /**
+     * GET api/wrapping/check_zone
+     * Cek apakah FMR berada di dalam zona wrapping
+     * 
+     * Request body:
+     * {
+     *   "fmr_x": -61.5,
+     *   "fmr_y": 4.5
+     * }
+     */
+    public function check_zone()
+    {
+        $raw   = $this->input->raw_input_stream;
+        $input = json_decode($raw, true);
+
+        $fmr_x = $input['fmr_x'] ?? null;
+        $fmr_y = $input['fmr_y'] ?? null;
+
+        if ($fmr_x === null || $fmr_y === null){
+            echo json_encode([
+                'status'  => 'ERROR',
+                'message' => 'fmr_x & fmr_y required'
+            ]);
+            return;
+        }
+
+        $currentPos = "$fmr_x $fmr_y";
+        $check = $this->pointChecker->checkFMRWrappingZone(
+            $currentPos, 
+            null,
+            $this->wrappingPoint,
+            $this->wrappingRadius
+        );
+
+        echo json_encode([
+            'status' => 'OK',
+            'wrapping_point' => $this->wrappingPoint,
+            'radius' => $this->wrappingRadius,
+            'fmr_position' => [
+                'x' => $fmr_x,
+                'y' => $fmr_y
+            ],
+            'zone_check' => $check
+        ]);
+    }
+}

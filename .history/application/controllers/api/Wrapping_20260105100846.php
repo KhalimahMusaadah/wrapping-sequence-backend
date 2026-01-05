@@ -58,13 +58,9 @@ class Wrapping extends CI_Controller {
         //TRIGGER CEK FMR
         $fmrCheck = $this->checkFmrById(24);
 
-        //log untuk debugging
-        log_message('info', json_encode($fmrCheck));
-
         return $this->response([
             'success' => true,
-            'message' => 'READY status received',
-            'fmr_check' => $fmrCheck
+            'message' => 'READY status received'
         ]);
     }
 
@@ -91,7 +87,6 @@ class Wrapping extends CI_Controller {
 
         $url = "http://10.8.15.226:4333/api/amr/onlineAmr?mapId=".$mapId;
 
-        // tiap login ganti cookienya
         $cookie = 'JSESSIONID=67fb9985-a9f4-4600-b065-1c61dc46f243; userName=Developt';
 
         $ch = curl_init($url);

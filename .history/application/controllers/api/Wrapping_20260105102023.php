@@ -59,8 +59,7 @@ class Wrapping extends CI_Controller {
         $fmrCheck = $this->checkFmrById(24);
 
         //log untuk debugging
-        log_message('info', json_encode($fmrCheck));
-
+        
         return $this->response([
             'success' => true,
             'message' => 'READY status received',

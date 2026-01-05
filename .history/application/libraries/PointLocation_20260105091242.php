@@ -94,5 +94,5 @@ class Pointlocation {
     "-59.698 6.2838",// kanan atas
     "-59.698 3.800", // kanan bawah
     "-61.04 3.800"   // tutup loop
-];*/
+];
 

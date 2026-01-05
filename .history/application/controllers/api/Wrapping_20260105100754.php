@@ -58,13 +58,9 @@ class Wrapping extends CI_Controller {
         //TRIGGER CEK FMR
         $fmrCheck = $this->checkFmrById(24);
 
-        //log untuk debugging
-        log_message('info', json_encode($fmrCheck));
-
         return $this->response([
             'success' => true,
-            'message' => 'READY status received',
-            'fmr_check' => $fmrCheck
+            'message' => 'READY status received'
         ]);
     }
 
@@ -76,84 +72,7 @@ class Wrapping extends CI_Controller {
             ->set_output(json_encode($data));
     }
 
-    private function checkFmrById($fmrId)
-    {
-        $mapId = 6;
-
-        // polygon wrapping
-        $polygon = [
-            "-61.04 3.800",
-            "-61.04 6.2838",
-            "-59.698 6.2838",
-            "-59.698 3.800",
-            "-61.04 3.800"
-        ];
-
-        $url = "http://10.8.15.226:4333/api/amr/onlineAmr?mapId=".$mapId;
-
-        // tiap login ganti cookienya
-        $cookie = 'JSESSIONID=67fb9985-a9f4-4600-b065-1c61dc46f243; userName=Developt';
-
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 5,
-            CURLOPT_HTTPHEADER => [
-                'Cookie: ' . $cookie,
-                'Accept: application/json'
-            ]
-        ]);
-
-        $response = curl_exec($ch);
-        curl_close($ch);
-
-        if (!$response) {
-            return [
-                'success' => false,
-                'message' => 'Failed call AMR API'
-            ];
-        }
-
-        $amrData = json_decode($response, true);
-
-        if (!isset($amrData['data'])) {
-            return [
-                'success' => false,
-                'message' => 'Invalid AMR response'
-            ];
-        }
-
-        // cari FMR id 24
-        foreach ($amrData['data'] as $fmr) {
-            if ($fmr['id'] == $fmrId) {
-
-                $x = $fmr['coordinate']['x'];
-                $y = $fmr['coordinate']['y'];
-
-                $point = $x." ".$y;
-
-                $zoneResult = $this->pointlocation->pointInPolygon(
-                    $point,
-                    $polygon,
-                    true
-                );
-
-                return [
-                    'success' => true,
-                    'fmr_id'  => $fmrId,
-                    'x'       => $x,
-                    'y'       => $y,
-                    'zone'    => $zoneResult
-                ];
-            }
-        }
-
-        return [
-            'success' => false,
-            'message' => 'FMR not found'
-        ];
-    }
-
+    private function checkFmrById($)
 
     /**
      * GET api/wrapping/check_fmr

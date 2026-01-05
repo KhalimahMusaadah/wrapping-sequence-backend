@@ -58,9 +58,7 @@ class Wrapping extends CI_Controller {
         //TRIGGER CEK FMR
         $fmrCheck = $this->checkFmrById(24);
 
-        //log untuk debugging
-        log_message('info', json_encode($fmrCheck));
-
+        //log
         return $this->response([
             'success' => true,
             'message' => 'READY status received',

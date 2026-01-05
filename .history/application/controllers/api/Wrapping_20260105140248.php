@@ -202,11 +202,8 @@ class Wrapping extends CI_Controller {
         ]);
 
         $response = curl_exec($ch);
-        $error    = curl_error($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        // CURL ERROR
         if ($response === false) {
             log_message('error', '[AMR API] Curl error: '.$error);
             return false;
@@ -224,9 +221,8 @@ class Wrapping extends CI_Controller {
             return false;
         }
 
-        return $json['data'];
+        return $json['data'] ?? false;
     }
-
 
     private function checkFmrById($fmrId)
     {

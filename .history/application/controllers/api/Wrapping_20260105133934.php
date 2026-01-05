@@ -84,13 +84,11 @@ class Wrapping extends CI_Controller {
      */
     private function pollingCheckAllFmr()
     {
-        $mapId = 6; //nanti diganti 
+        $mapId = 6; //nanti diganti angan hardcore
         $timeoutSeconds = 60;
         $interval = 3;
 
         $startTime = time();
-
-        log_message('info', '[POLLING] START polling FMR wrapping zone');
 
         $polygon = [
             "-61.04 3.800",
@@ -102,21 +100,16 @@ class Wrapping extends CI_Controller {
 
         while (true) {
 
-            // timeout
+            // ⏱ timeout
             if ((time() - $startTime) >= $timeoutSeconds) {
-                log_message('warning', '[POLLING] STOP - TIMEOUT, FMR still inside');
-
                 return [
                     'status' => 'TIMEOUT',
                     'message' => 'Polling timeout, FMR still inside'
                 ];
             }
 
-            //call AMR API
-            log_message('debug', '[POLLING] Calling AMR API');
             $amrData = $this->callAmrApi($mapId);
             if (!$amrData) {
-                log_message('error', '[POLLING] AMR API failed');
                 return [
                     'status' => 'FAILED',
                     'message' => 'AMR API error'
@@ -126,25 +119,15 @@ class Wrapping extends CI_Controller {
             $insideFound = false;
             $checkedFmr = [];
 
-            //loop semua robot
             foreach ($amrData as $robot) {
 
                 // hanya FMR
-                if (!isset($robot['classType']) || $robot['classType'] !== 'FR') {
+                if ($robot['classType'] !== 'FR') {
                     continue;
                 }
 
-                $id = $robot['id'] ?? null;
-                $x  = $robot['coordinate']['x'] ?? null;
-                $y  = $robot['coordinate']['y'] ?? null;
-
-                if ($x === null || $y === null) {
-                    log_message(
-                        'warning',
-                        "[POLLING] FMR id={$id} coordinate missing"
-                    );
-                    continue;
-                }
+                $x = $robot['coordinate']['x'];
+                $y = $robot['coordinate']['y'];
 
                 $point = $x . " " . $y;
 
@@ -154,33 +137,26 @@ class Wrapping extends CI_Controller {
                     true
                 );
 
-                log_message(
-                    'debug',
-                    "[POLLING] FMR id={$id} x={$x} y={$y} zone={$zone}"
-                );
-
                 $checkedFmr[] = [
-                    'id'   => $id,
-                    'x'    => $x,
-                    'y'    => $y,
+                    'id' => $robot['id'],
+                    'location' => $robot['coordinate']['location'] ?? null,
                     'zone' => $zone
                 ];
 
-                if (in_array($zone, ['inside', 'boundary', 'vertex'])) {
+                if ($zone === 'inside' || $zone === 'boundary' || $zone === 'vertex') {
                     $insideFound = true;
                 }
             }
 
-            // STOP CONDITION
+            // 🚦 STOP CONDITION
             if (!$insideFound) {
-                log_message('info', '[POLLING] STOP - all FMR outside wrapping zone');
                 return [
                     'status' => 'ALL_OUTSIDE',
                     'message' => 'All FMR are outside wrapping zone',
                     'checked_fmr' => $checkedFmr
                 ];
             }
-            log_message('debug', "[POLLING] Still inside, sleep {$interval}s");
+
             sleep($interval);
         }
     }
@@ -189,7 +165,7 @@ class Wrapping extends CI_Controller {
     {
         $url = "http://10.8.15.226:4333/api/amr/onlineAmr?mapId=".$mapId;
 
-        $cookie = 'JSESSIONID=0f71e3d2-f6d9-48a2-8dbf-34847c2a4c96; userName=Developt';
+        $cookie = 'JSESSIONID=67fb9985-a9f4-4600-b065-1c61dc46f243; userName=Developt';
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -202,31 +178,14 @@ class Wrapping extends CI_Controller {
         ]);
 
         $response = curl_exec($ch);
-        $error    = curl_error($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        // CURL ERROR
-        if ($response === false) {
-            log_message('error', '[AMR API] Curl error: '.$error);
-            return false;
-        }
-
-        log_message(
-            'debug',
-            "[AMR API] HTTP {$httpCode} response received"
-        );
+        if (!$response) return false;
 
         $json = json_decode($response, true);
 
-        if (!isset($json['data'])) {
-            log_message('error', '[AMR API] Invalid response structure');
-            return false;
-        }
-
-        return $json['data'];
+        return $json['data'] ?? false;
     }
-
 
     private function checkFmrById($fmrId)
     {

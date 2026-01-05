@@ -186,46 +186,46 @@ class Wrapping extends CI_Controller {
     }
 
     private function callAmrApi($mapId)
-    {
-        $url = "http://10.8.15.226:4333/api/amr/onlineAmr?mapId=".$mapId;
+{
+    $url = "http://10.8.15.226:4333/api/amr/onlineAmr?mapId=".$mapId;
 
-        $cookie = 'JSESSIONID=0f71e3d2-f6d9-48a2-8dbf-34847c2a4c96; userName=Developt';
+    $cookie = 'JSESSIONID=0f71e3d2-f6d9-48a2-8dbf-34847c2a4c96; userName=Developt';
 
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 5,
-            CURLOPT_HTTPHEADER => [
-                'Cookie: ' . $cookie,
-                'Accept: application/json'
-            ]
-        ]);
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 5,
+        CURLOPT_HTTPHEADER => [
+            'Cookie: ' . $cookie,
+            'Accept: application/json'
+        ]
+    ]);
 
-        $response = curl_exec($ch);
-        $error    = curl_error($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+    $response = curl_exec($ch);
+    $error    = curl_error($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
 
-        // CURL ERROR
-        if ($response === false) {
-            log_message('error', '[AMR API] Curl error: '.$error);
-            return false;
-        }
-
-        log_message(
-            'debug',
-            "[AMR API] HTTP {$httpCode} response received"
-        );
-
-        $json = json_decode($response, true);
-
-        if (!isset($json['data'])) {
-            log_message('error', '[AMR API] Invalid response structure');
-            return false;
-        }
-
-        return $json['data'];
+    // CURL ERROR
+    if ($response === false) {
+        log_message('error', '[AMR API] Curl error: '.$error);
+        return false;
     }
+
+    log_message(
+        'debug',
+        "[AMR API] HTTP {$httpCode} response received"
+    );
+
+    $json = json_decode($response, true);
+
+    if (!isset($json['data'])) {
+        log_message('error', '[AMR API] Invalid response structure');
+        return false;
+    }
+
+    return $json['data'];
+}
 
 
     private function checkFmrById($fmrId)

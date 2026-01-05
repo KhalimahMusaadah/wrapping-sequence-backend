@@ -82,7 +82,7 @@ class Wrapping extends CI_Controller {
         $url = "http://10.8.15.226:4333/api/amr/onlineAmr?mapId=".$mapId;
 
         // tiap login ganti cookienya
-        $cookie = 'JSESSIONID=ebcea858-ccc8-4de9-871d-275e2498ba95; userName=Developt';
+        $cookie = 'JSESSIONID=96ba8c4a-8c78-4da1-99d2-8095103fe28e; userName=Developt';
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -208,18 +208,18 @@ class Wrapping extends CI_Controller {
 
                 if (!in_array($zone, ['inside', 'boundary', 'vertex'])) {
                     unset($insideFmr[$id]); // FMR keluar, unlock
-                    log_message('info', "[POLLING] FMR id={$id} now outside");
+                    log_message('info', "[POLLING] FMR id={$id} now outside, unlock");
                 }
             }
 
             sleep($interval);
         }
 
-        log_message('info', '[POLLING] FMR are now outside');
+        log_message('info', '[POLLING] All previously inside FMR are now outside');
 
         return [
             'status' => 'ALL_OUTSIDE',
-            'message' => 'All FMR are outside'
+            'message' => 'All previously inside FMR are now outside'
         ];
     }
 

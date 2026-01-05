@@ -27,6 +27,7 @@ class Wrapping extends CI_Controller {
         $mac_address = $input['mac_address'] ?? null;
         $status      = $input['status'] ?? null;
 
+        // Validasi dasar
         if (!$mac_address || !$status) {
             return $this->response([
                 'success' => false,
@@ -42,6 +43,7 @@ class Wrapping extends CI_Controller {
             ], 422);
         }
 
+        // Simpan log READY dari IoT
         $this->Wrapping_model->insertIoTLog([
             'mac_address' => $mac_address,
             'status'      => 'READY',
@@ -53,14 +55,14 @@ class Wrapping extends CI_Controller {
             "[IOT READY] mac_address={$mac_address}"
         );
 
-        //test check FMR by ID
-        //$fmrCheck = $this->checkFmrById(28);
+        //TRIGGER CEK FMR
+        $fmrCheck = $this->checkFmrById(28);
 
         // //log untuk debugging
         // log_message('info', json_encode($fmrCheck));
 
         //start untuk polling
-        $pollingResult = $this->pollingFmr();
+        $pollingResult = $this->pollingCheckAllFmr();
 
         return $this->response([
             'success' => true,
@@ -77,152 +79,7 @@ class Wrapping extends CI_Controller {
             ->set_output(json_encode($data));
     }
 
-    private function callAmrApi($mapId)
-    {
-        $url = "http://10.8.15.226:4333/api/amr/onlineAmr?mapId=".$mapId;
-
-        // tiap login ganti cookienya
-        $cookie = 'JSESSIONID=ebcea858-ccc8-4de9-871d-275e2498ba95; userName=Developt';
-
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 5,
-            CURLOPT_HTTPHEADER => [
-                'Cookie: ' . $cookie,
-                'Accept: application/json'
-            ]
-        ]);
-
-        $response = curl_exec($ch);
-        $error    = curl_error($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        // CURL ERROR
-        if ($response === false) {
-            log_message('error', '[AMR API] Curl error: '.$error);
-            return false;
-        }
-
-        log_message(
-            'debug',
-            "[AMR API] HTTP {$httpCode} response received"
-        );
-
-        $json = json_decode($response, true);
-
-        if (!isset($json['data'])) {
-            log_message('error', '[AMR API] Invalid response structure');
-            return false;
-        }
-
-        return $json['data'];
-    }
-
-    private function pollingFmr()
-    {
-        $mapId = 6;
-        $timeoutSeconds = 60;
-        $interval = 3;
-        $startTime = time();
-
-        log_message('info', '[POLLING] START polling FMR wrapping zone');
-
-        $polygon = [
-            "-61.04 3.800",
-            "-61.04 6.2838",
-            "-59.698 6.2838",
-            "-59.698 3.800",
-            "-61.04 3.800"
-        ];
-
-        // Ambil semua FMR dari API
-        $amrData = $this->callAmrApi($mapId);
-        if (!$amrData) {
-            return [
-                'status' => 'FAILED',
-                'message' => 'AMR API error'
-            ];
-        }
-
-        // Cari FMR yang inside wrapping zone
-        $insideFmr = [];
-        foreach ($amrData as $robot) {
-            if (!isset($robot['classType']) || $robot['classType'] !== 'FL') continue;
-
-            $id = $robot['id'] ?? null;
-            $x  = $robot['coordinate']['x'] ?? null;
-            $y  = $robot['coordinate']['y'] ?? null;
-            if ($x === null || $y === null) continue;
-
-            $point = $x . " " . $y;
-            $zone = $this->pointlocation->pointInPolygon($point, $polygon, true);
-
-            if (in_array($zone, ['inside', 'boundary', 'vertex'])) {
-                $insideFmr[$id] = [
-                    'id' => $id,
-                    'x'  => $x,
-                    'y'  => $y
-                ];
-            }
-        }
-
-        if (empty($insideFmr)) {
-            log_message('info', '[POLLING] No FMR inside wrapping zone');
-            return [
-                'status' => 'ALL_OUTSIDE',
-                'message' => 'All FMR are outside wrapping zone'
-            ];
-        }
-
-        log_message('info', '[POLLING] Found inside FMR, start polling: '.implode(',', array_keys($insideFmr)));
-
-        // Polling FMR inside
-        while (!empty($insideFmr)) {
-
-            if ((time() - $startTime) >= $timeoutSeconds) {
-                log_message('warning', '[POLLING] STOP - TIMEOUT, FMR still inside');
-                return [
-                    'status' => 'TIMEOUT',
-                    'message' => 'Polling timeout, FMR still inside',
-                    'inside_fmr' => array_keys($insideFmr)
-                ];
-            }
-
-            $amrData = $this->callAmrApi($mapId);
-            if (!$amrData) return ['status'=>'FAILED','message'=>'AMR API error'];
-
-            foreach ($amrData as $robot) {
-                $id = $robot['id'] ?? null;
-                if (!isset($insideFmr[$id])) continue; // hanya FMR yang inside
-
-                $x  = $robot['coordinate']['x'] ?? null;
-                $y  = $robot['coordinate']['y'] ?? null;
-                if ($x === null || $y === null) continue;
-
-                $point = $x . " " . $y;
-                $zone = $this->pointlocation->pointInPolygon($point, $polygon, true);
-
-                log_message('debug', "[POLLING] FMR id={$id} x={$x} y={$y} zone={$zone}");
-
-                if (!in_array($zone, ['inside', 'boundary', 'vertex'])) {
-                    unset($insideFmr[$id]); // FMR keluar, unlock
-                    log_message('info', "[POLLING] FMR id={$id} now outside");
-                }
-            }
-
-            sleep($interval);
-        }
-
-        log_message('info', '[POLLING] FMR are now outside');
-
-        return [
-            'status' => 'ALL_OUTSIDE',
-            'message' => 'All FMR are outside'
-        ];
-    }
-
+    private function pollingInsideFmr
 
     /**
      * Pengecekan berkala semua FMR apakah sudah keluar dari zona wrapping
@@ -328,6 +185,48 @@ class Wrapping extends CI_Controller {
             log_message('debug', "[POLLING] Still inside, sleep {$interval}s");
             sleep($interval);
         }
+    }
+
+    private function callAmrApi($mapId)
+    {
+        $url = "http://10.8.15.226:4333/api/amr/onlineAmr?mapId=".$mapId;
+
+        $cookie = 'JSESSIONID=96ba8c4a-8c78-4da1-99d2-8095103fe28e; userName=Developt';
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 5,
+            CURLOPT_HTTPHEADER => [
+                'Cookie: ' . $cookie,
+                'Accept: application/json'
+            ]
+        ]);
+
+        $response = curl_exec($ch);
+        $error    = curl_error($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        // CURL ERROR
+        if ($response === false) {
+            log_message('error', '[AMR API] Curl error: '.$error);
+            return false;
+        }
+
+        log_message(
+            'debug',
+            "[AMR API] HTTP {$httpCode} response received"
+        );
+
+        $json = json_decode($response, true);
+
+        if (!isset($json['data'])) {
+            log_message('error', '[AMR API] Invalid response structure');
+            return false;
+        }
+
+        return $json['data'];
     }
 
 

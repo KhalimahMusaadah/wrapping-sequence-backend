@@ -82,7 +82,7 @@ class Wrapping extends CI_Controller {
         $url = "http://10.8.15.226:4333/api/amr/onlineAmr?mapId=".$mapId;
 
         // tiap login ganti cookienya
-        $cookie = 'JSESSIONID=ebcea858-ccc8-4de9-871d-275e2498ba95; userName=Developt';
+        $cookie = 'JSESSIONID=ebcea858-ccc8-4de9-871d-275e2498ba95;; userName=Developt';
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [

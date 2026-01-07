@@ -199,7 +199,7 @@ class Wrapping extends CI_Controller {
                 ];
             }
 
-            //testing mode: paksa ada FMR inside
+            //testing fmr inside untuk wrapping
             if (empty($insideFmr)) {
                 $insideFmr[999] = [
                     'id' => 999,

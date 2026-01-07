@@ -26,9 +26,6 @@ class Wrapping extends CI_Controller {
     {
         $input = json_decode($this->input->raw_input_stream, true);
 
-        //testing mode
-        $testMode = $this->input->get('test') == 'true';        
-
         $mac_address = $input['mac_address'] ?? null;
         $status      = $input['status'] ?? null;
 
@@ -58,24 +55,14 @@ class Wrapping extends CI_Controller {
             "[IOT READY] mac_address={$mac_address}"
         );
 
-        // test check FMR by ID
-        // $fmrCheck = $this->checkFmrById(28);
+        //test check FMR by ID
+        //$fmrCheck = $this->checkFmrById(28);
 
         // //log untuk debugging
         // log_message('info', json_encode($fmrCheck));
 
         //start untuk polling
         $pollingResult = $this->pollingFmr();
-
-        //testing mode
-        if ($testMode) {
-            $pollingResult = [
-                'status' => 'FMR_OUTSIDE',
-                'fmr_id' => 999,
-                'coordinate' => ['x' => -60.0, 'y' => 5.0],
-                'zone' => 'outside'
-            ];
-        }
 
         //trigger wrap setelah pengecekan polling selesai
         if ($pollingResult['status'] === 'FMR_OUTSIDE') {
@@ -102,7 +89,7 @@ class Wrapping extends CI_Controller {
         $url = "http://10.8.15.226:4333/api/amr/onlineAmr?mapId=".$mapId;
 
         // tiap login ganti cookienya
-        $cookie = 'JSESSIONID=a9000814-e869-4af2-a0b6-790d8ecc2486; userName=Developt';
+        $cookie = 'JSESSIONID=4a0e0eac-832c-4ab7-ae32-6c58d5768a72; userName=Developt';
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -198,16 +185,6 @@ class Wrapping extends CI_Controller {
                     'zone' => $zone
                 ];
             }
-
-            //testing mode: paksa ada FMR inside
-            if (empty($insideFmr)) {
-                $insideFmr[999] = [
-                    'id' => 999,
-                    'x' => -60.0,
-                    'y' => 5.0
-                ];
-                log_message('info', '[POLLING TEST] Memaksa FMR dummy id=999 inside');
-            }
         }
 
         if (empty($insideFmr)) {
@@ -280,7 +257,7 @@ class Wrapping extends CI_Controller {
     private function triggerWrap($macAddress)
     {
         //trigger melalui HTTP API
-        $iotUrl = "http://localhost:8081/api/wrapping/command";
+        $iotUrl = "http://10.8.15.230:8080/api/wrapping/command";
         $payload = [
             'mac_address' => $macAddress,
             'command'     => 'WRAP'
@@ -317,6 +294,9 @@ class Wrapping extends CI_Controller {
 
         log_message('info', "[WRAP TRIGGER] Response HTTP {$httpCode}: {$response}");
 
+        // ===========================
+        // Simpan log ke DB setelah trigger
+        // ===========================
         $this->Wrapping_model->insertIoTLog([
             'mac_address' => $macAddress,
             'status'      => 'WRAP_TRIGGERED',
@@ -326,17 +306,6 @@ class Wrapping extends CI_Controller {
 
         return $iotResult;
     }
-
-    public function command()
-    {
-        $input = json_decode($this->input->raw_input_stream, true);
-        return $this->response([
-            'success' => true,
-            'message' => 'Dummy IoT command received',
-            'payload' => $input
-        ]);
-    }
-
 
     // private function checkFmrById($fmrId)
     // {

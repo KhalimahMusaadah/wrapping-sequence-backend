@@ -199,7 +199,7 @@ class Wrapping extends CI_Controller {
                 ];
             }
 
-            //testing mode: paksa ada FMR inside
+            //testing mode
             if (empty($insideFmr)) {
                 $insideFmr[999] = [
                     'id' => 999,

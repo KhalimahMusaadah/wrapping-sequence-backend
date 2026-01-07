@@ -3,7 +3,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Wrapping extends CI_Controller {
 
-    private $DEBUG_POLLING = true;
+    private $DEBUG_POLLING = false;
 
     public function __construct()
     {
@@ -25,9 +25,6 @@ class Wrapping extends CI_Controller {
     public function ready()
     {
         $input = json_decode($this->input->raw_input_stream, true);
-
-        //testing mode
-        $testMode = $this->input->get('test') == 'true';        
 
         $mac_address = $input['mac_address'] ?? null;
         $status      = $input['status'] ?? null;
@@ -58,24 +55,14 @@ class Wrapping extends CI_Controller {
             "[IOT READY] mac_address={$mac_address}"
         );
 
-        // test check FMR by ID
-        // $fmrCheck = $this->checkFmrById(28);
+        //test check FMR by ID
+        //$fmrCheck = $this->checkFmrById(28);
 
         // //log untuk debugging
         // log_message('info', json_encode($fmrCheck));
 
         //start untuk polling
         $pollingResult = $this->pollingFmr();
-
-        //testing mode
-        if ($testMode) {
-            $pollingResult = [
-                'status' => 'FMR_OUTSIDE',
-                'fmr_id' => 999,
-                'coordinate' => ['x' => -60.0, 'y' => 5.0],
-                'zone' => 'outside'
-            ];
-        }
 
         //trigger wrap setelah pengecekan polling selesai
         if ($pollingResult['status'] === 'FMR_OUTSIDE') {
@@ -102,7 +89,7 @@ class Wrapping extends CI_Controller {
         $url = "http://10.8.15.226:4333/api/amr/onlineAmr?mapId=".$mapId;
 
         // tiap login ganti cookienya
-        $cookie = 'JSESSIONID=a9000814-e869-4af2-a0b6-790d8ecc2486; userName=Developt';
+        $cookie = 'JSESSIONID=4a0e0eac-832c-4ab7-ae32-6c58d5768a72; userName=Developt';
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -168,10 +155,8 @@ class Wrapping extends CI_Controller {
 
         // Cari FMR yang inside wrapping zone
         $insideFmr = [];
-        $debugFmr = [];
         foreach ($amrData as $robot) {
             if (!isset($robot['classType']) || $robot['classType'] !== 'FL') continue;
-            if (!isset($robot['coordinate'])) continue;
 
             $id = $robot['id'] ?? null;
             $x  = $robot['coordinate']['x'] ?? null;
@@ -188,26 +173,6 @@ class Wrapping extends CI_Controller {
                     'y'  => $y
                 ];
             }
-
-            // simpan semua untuk DEBUG
-            if ($this->DEBUG_POLLING) {
-                $debugFmr[] = [
-                    'id'   => $id,
-                    'x'    => $x,
-                    'y'    => $y,
-                    'zone' => $zone
-                ];
-            }
-
-            //testing mode: paksa ada FMR inside
-            if (empty($insideFmr)) {
-                $insideFmr[999] = [
-                    'id' => 999,
-                    'x' => -60.0,
-                    'y' => 5.0
-                ];
-                log_message('info', '[POLLING TEST] Memaksa FMR dummy id=999 inside');
-            }
         }
 
         if (empty($insideFmr)) {
@@ -218,6 +183,26 @@ class Wrapping extends CI_Controller {
             ];
 
             if ($this->DEBUG_POLLING) {
+                $debugFmr = [];
+
+                foreach ($amrData as $robot) {
+                    if (!isset($robot['coordinate'])) continue;
+
+                    $x = $robot['coordinate']['x'] ?? null;
+                    $y = $robot['coordinate']['y'] ?? null;
+                    if ($x === null || $y === null) continue;
+
+                    $point = $x . " " . $y;
+                    $zone = $this->pointlocation->pointInPolygon($point, $polygon, true);
+
+                    $debugFmr[] = [
+                        'id'   => $robot['id'] ?? null,
+                        'x'    => $x,
+                        'y'    => $y,
+                        'zone' => $zone
+                    ];
+                }
+
                 $result['debug_fmr'] = $debugFmr;
             }
 
@@ -279,61 +264,12 @@ class Wrapping extends CI_Controller {
 
     private function triggerWrap($macAddress)
     {
-        //trigger melalui HTTP API
-        $iotUrl = "http://localhost:8081/api/wrapping/command";
-        $payload = [
-            'mac_address' => $macAddress,
-            'command'     => 'WRAP'
-        ];
-
-        $ch = curl_init($iotUrl);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 5,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($payload),
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json'
-            ]
-        ]);
-
-        $response = curl_exec($ch);
-        $error    = curl_error($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($response === false) {
-            log_message('error', "[WRAP TRIGGER] Curl error: $error");
-            $this->Wrapping_model->insertIoTLog([
-                'mac_address' => $macAddress,
-                'status'      => 'WRAP_FAILED',
-                'call_status' => 'ERROR',
-                'message'     => $error
-            ]);
-            return false;
-        }
-
-        $iotResult = json_decode($response, true);
-
-        log_message('info', "[WRAP TRIGGER] Response HTTP {$httpCode}: {$response}");
+        log_message('info', "[WRAP TRIGGER] Sending WRAP command to mac_address={$macAddress}");
 
         $this->Wrapping_model->insertIoTLog([
             'mac_address' => $macAddress,
             'status'      => 'WRAP_TRIGGERED',
-            'call_status' => ($httpCode==200 ? 'TRANSMIT' : 'ERROR'),
-            'message'     => $response
-        ]);
-
-        return $iotResult;
-    }
-
-    public function command()
-    {
-        $input = json_decode($this->input->raw_input_stream, true);
-        return $this->response([
-            'success' => true,
-            'message' => 'Dummy IoT command received',
-            'payload' => $input
+            'call_status' => 'TRANSMIT'
         ]);
     }
 

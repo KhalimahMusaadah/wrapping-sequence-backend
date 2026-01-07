@@ -3,8 +3,6 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Wrapping extends CI_Controller {
 
-    private $DEBUG_POLLING = true;
-
     public function __construct()
     {
         parent::__construct();
@@ -25,9 +23,6 @@ class Wrapping extends CI_Controller {
     public function ready()
     {
         $input = json_decode($this->input->raw_input_stream, true);
-
-        //testing mode
-        $testMode = $this->input->get('test') == 'true';        
 
         $mac_address = $input['mac_address'] ?? null;
         $status      = $input['status'] ?? null;
@@ -58,24 +53,14 @@ class Wrapping extends CI_Controller {
             "[IOT READY] mac_address={$mac_address}"
         );
 
-        // test check FMR by ID
-        // $fmrCheck = $this->checkFmrById(28);
+        //test check FMR by ID
+        //$fmrCheck = $this->checkFmrById(28);
 
         // //log untuk debugging
         // log_message('info', json_encode($fmrCheck));
 
         //start untuk polling
         $pollingResult = $this->pollingFmr();
-
-        //testing mode
-        if ($testMode) {
-            $pollingResult = [
-                'status' => 'FMR_OUTSIDE',
-                'fmr_id' => 999,
-                'coordinate' => ['x' => -60.0, 'y' => 5.0],
-                'zone' => 'outside'
-            ];
-        }
 
         //trigger wrap setelah pengecekan polling selesai
         if ($pollingResult['status'] === 'FMR_OUTSIDE') {
@@ -102,7 +87,7 @@ class Wrapping extends CI_Controller {
         $url = "http://10.8.15.226:4333/api/amr/onlineAmr?mapId=".$mapId;
 
         // tiap login ganti cookienya
-        $cookie = 'JSESSIONID=a9000814-e869-4af2-a0b6-790d8ecc2486; userName=Developt';
+        $cookie = 'JSESSIONID=80bba04d-40f1-46b9-977b-7969a367a7a3; userName=Developt';
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -168,10 +153,8 @@ class Wrapping extends CI_Controller {
 
         // Cari FMR yang inside wrapping zone
         $insideFmr = [];
-        $debugFmr = [];
         foreach ($amrData as $robot) {
             if (!isset($robot['classType']) || $robot['classType'] !== 'FL') continue;
-            if (!isset($robot['coordinate'])) continue;
 
             $id = $robot['id'] ?? null;
             $x  = $robot['coordinate']['x'] ?? null;
@@ -188,40 +171,14 @@ class Wrapping extends CI_Controller {
                     'y'  => $y
                 ];
             }
-
-            // simpan semua untuk DEBUG
-            if ($this->DEBUG_POLLING) {
-                $debugFmr[] = [
-                    'id'   => $id,
-                    'x'    => $x,
-                    'y'    => $y,
-                    'zone' => $zone
-                ];
-            }
-
-            //testing mode: paksa ada FMR inside
-            if (empty($insideFmr)) {
-                $insideFmr[999] = [
-                    'id' => 999,
-                    'x' => -60.0,
-                    'y' => 5.0
-                ];
-                log_message('info', '[POLLING TEST] Memaksa FMR dummy id=999 inside');
-            }
         }
 
         if (empty($insideFmr)) {
             log_message('info', '[POLLING] No FMR inside wrapping zone');
-            $result = [
+            return [
                 'status' => 'ALL_OUTSIDE',
                 'message' => 'All FMR are outside wrapping zone'
             ];
-
-            if ($this->DEBUG_POLLING) {
-                $result['debug_fmr'] = $debugFmr;
-            }
-
-            return $result;
         }
 
         log_message('info', '[POLLING] Found inside FMR, start polling: '.implode(',', array_keys($insideFmr)));
@@ -256,20 +213,10 @@ class Wrapping extends CI_Controller {
 
                 if (!in_array($zone, ['inside', 'boundary', 'vertex'])) {
                     log_message('info', "[POLLING] FMR id={$id} now outside");
-                    $result = [
+                    return [
                         'status' => 'FMR_OUTSIDE',
                         'fmr_id' => $id,
                     ];
-
-                    if ($this->DEBUG_POLLING) {
-                        $result['coordinate'] = [
-                            'x' => $x,
-                            'y' => $y
-                        ];
-                        $result['zone'] = $zone;
-                    }
-
-                    return $result;
                 }
             }
 
@@ -279,142 +226,200 @@ class Wrapping extends CI_Controller {
 
     private function triggerWrap($macAddress)
     {
-        //trigger melalui HTTP API
-        $iotUrl = "http://localhost:8081/api/wrapping/command";
-        $payload = [
-            'mac_address' => $macAddress,
-            'command'     => 'WRAP'
-        ];
-
-        $ch = curl_init($iotUrl);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 5,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($payload),
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json'
-            ]
-        ]);
-
-        $response = curl_exec($ch);
-        $error    = curl_error($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        if ($response === false) {
-            log_message('error', "[WRAP TRIGGER] Curl error: $error");
-            $this->Wrapping_model->insertIoTLog([
-                'mac_address' => $macAddress,
-                'status'      => 'WRAP_FAILED',
-                'call_status' => 'ERROR',
-                'message'     => $error
-            ]);
-            return false;
-        }
-
-        $iotResult = json_decode($response, true);
-
-        log_message('info', "[WRAP TRIGGER] Response HTTP {$httpCode}: {$response}");
+        log_message('info', "[WRAP TRIGGER] Sending WRAP command to mac_address={$macAddress}");
 
         $this->Wrapping_model->insertIoTLog([
             'mac_address' => $macAddress,
             'status'      => 'WRAP_TRIGGERED',
-            'call_status' => ($httpCode==200 ? 'TRANSMIT' : 'ERROR'),
-            'message'     => $response
-        ]);
-
-        return $iotResult;
-    }
-
-    public function command()
-    {
-        $input = json_decode($this->input->raw_input_stream, true);
-        return $this->response([
-            'success' => true,
-            'message' => 'Dummy IoT command received',
-            'payload' => $input
+            'call_status' => 'TRANSMIT'
         ]);
     }
 
 
-    // private function checkFmrById($fmrId)
-    // {
-    //     $mapId = 6;
+//     /**
+//      * Pengecekan berkala semua FMR apakah sudah keluar dari zona wrapping
+//      */
+//     private function pollingCheckAllFmr()
+//     {
+//         $mapId = 6; //nanti diganti 
+//         $timeoutSeconds = 60;
+//         $interval = 3;
 
-    //     // polygon wrapping
-    //     $polygon = [
-    //         "-61.04 3.800",
-    //         "-61.04 6.2838",
-    //         "-59.698 6.2838",
-    //         "-59.698 3.800",
-    //         "-61.04 3.800"
-    //     ];
+//         $startTime = time();
 
-    //     $url = "http://10.8.15.226:4333/api/amr/onlineAmr?mapId=".$mapId;
+//         log_message('info', '[POLLING] START polling FMR wrapping zone');
 
-    //     // tiap login ganti cookienya
-    //     $cookie = 'JSESSIONID=67fb9985-a9f4-4600-b065-1c61dc46f243; userName=Developt';
+//         $polygon = [
+//             "-61.04 3.800",
+//             "-61.04 6.2838",
+//             "-59.698 6.2838",
+//             "-59.698 3.800",
+//             "-61.04 3.800"
+//         ];
 
-    //     $ch = curl_init($url);
-    //     curl_setopt_array($ch, [
-    //         CURLOPT_RETURNTRANSFER => true,
-    //         CURLOPT_TIMEOUT => 5,
-    //         CURLOPT_HTTPHEADER => [
-    //             'Cookie: ' . $cookie,
-    //             'Accept: application/json'
-    //         ]
-    //     ]);
+//         while (true) {
 
-    //     $response = curl_exec($ch);
-    //     curl_close($ch);
+//             // timeout
+//             if ((time() - $startTime) >= $timeoutSeconds) {
+//                 log_message('warning', '[POLLING] STOP - TIMEOUT, FMR still inside');
 
-    //     if (!$response) {
-    //         return [
-    //             'success' => false,
-    //             'message' => 'Failed call AMR API'
-    //         ];
-    //     }
+//                 return [
+//                     'status' => 'TIMEOUT',
+//                     'message' => 'Polling timeout, FMR still inside'
+//                 ];
+//             }
 
-    //     $amrData = json_decode($response, true);
+//             //call AMR API
+//             log_message('debug', '[POLLING] Calling AMR API');
+//             $amrData = $this->callAmrApi($mapId);
+//             if (!$amrData) {
+//                 log_message('error', '[POLLING] AMR API failed');
+//                 return [
+//                     'status' => 'FAILED',
+//                     'message' => 'AMR API error'
+//                 ];
+//             }
 
-    //     if (!isset($amrData['data'])) {
-    //         return [
-    //             'success' => false,
-    //             'message' => 'Invalid AMR response'
-    //         ];
-    //     }
+//             $insideFound = false;
+//             $checkedFmr = [];
 
-    //     // cari FMR id 24
-    //     foreach ($amrData['data'] as $fmr) {
-    //         if ($fmr['id'] == $fmrId) {
+//             //loop semua robot
+//             foreach ($amrData as $robot) {
 
-    //             $x = $fmr['coordinate']['x'];
-    //             $y = $fmr['coordinate']['y'];
+//                 // hanya FMR
+//                 if (!isset($robot['classType']) || $robot['classType'] !== 'FL') {
+//                     continue;
+//                 }
 
-    //             $point = $x." ".$y;
+//                 $id = $robot['id'] ?? null;
+//                 $x  = $robot['coordinate']['x'] ?? null;
+//                 $y  = $robot['coordinate']['y'] ?? null;
 
-    //             $zoneResult = $this->pointlocation->pointInPolygon(
-    //                 $point,
-    //                 $polygon,
-    //                 true
-    //             );
+//                 if ($x === null || $y === null) {
+//                     log_message(
+//                         'warning',
+//                         "[POLLING] FMR id={$id} coordinate missing"
+//                     );
+//                     continue;
+//                 }
 
-    //             return [
-    //                 'success' => true,
-    //                 'fmr_id'  => $fmrId,
-    //                 'x'       => $x,
-    //                 'y'       => $y,
-    //                 'zone'    => $zoneResult
-    //             ];
-    //         }
-    //     }
+//                 $point = $x . " " . $y;
 
-    //     return [
-    //         'success' => false,
-    //         'message' => 'FMR not found'
-    //     ];
-    // }
+//                 $zone = $this->pointlocation->pointInPolygon(
+//                     $point,
+//                     $polygon,
+//                     true
+//                 );
+
+//                 log_message(
+//                     'debug',
+//                     "[POLLING] FMR id={$id} x={$x} y={$y} zone={$zone}"
+//                 );
+
+//                 $checkedFmr[] = [
+//                     'id'   => $id,
+//                     'x'    => $x,
+//                     'y'    => $y,
+//                     'zone' => $zone
+//                 ];
+
+//                 if (in_array($zone, ['inside', 'boundary', 'vertex'])) {
+//                     $insideFound = true;
+//                 }
+//             }
+
+//             // STOP CONDITION
+//             if (!$insideFound) {
+//                 log_message('info', '[POLLING] STOP - all FMR outside wrapping zone');
+//                 return [
+//                     'status' => 'ALL_OUTSIDE',
+//                     'message' => 'All FMR are outside wrapping zone',
+//                     'checked_fmr' => $checkedFmr
+//                 ];
+//             }
+//             log_message('debug', "[POLLING] Still inside, sleep {$interval}s");
+//             sleep($interval);
+//         }
+//     }
+
+
+//     private function checkFmrById($fmrId)
+//     {
+//         $mapId = 6;
+
+//         // polygon wrapping
+//         $polygon = [
+//             "-61.04 3.800",
+//             "-61.04 6.2838",
+//             "-59.698 6.2838",
+//             "-59.698 3.800",
+//             "-61.04 3.800"
+//         ];
+
+//         $url = "http://10.8.15.226:4333/api/amr/onlineAmr?mapId=".$mapId;
+
+//         // tiap login ganti cookienya
+//         $cookie = 'JSESSIONID=67fb9985-a9f4-4600-b065-1c61dc46f243; userName=Developt';
+
+//         $ch = curl_init($url);
+//         curl_setopt_array($ch, [
+//             CURLOPT_RETURNTRANSFER => true,
+//             CURLOPT_TIMEOUT => 5,
+//             CURLOPT_HTTPHEADER => [
+//                 'Cookie: ' . $cookie,
+//                 'Accept: application/json'
+//             ]
+//         ]);
+
+//         $response = curl_exec($ch);
+//         curl_close($ch);
+
+//         if (!$response) {
+//             return [
+//                 'success' => false,
+//                 'message' => 'Failed call AMR API'
+//             ];
+//         }
+
+//         $amrData = json_decode($response, true);
+
+//         if (!isset($amrData['data'])) {
+//             return [
+//                 'success' => false,
+//                 'message' => 'Invalid AMR response'
+//             ];
+//         }
+
+//         // cari FMR id 24
+//         foreach ($amrData['data'] as $fmr) {
+//             if ($fmr['id'] == $fmrId) {
+
+//                 $x = $fmr['coordinate']['x'];
+//                 $y = $fmr['coordinate']['y'];
+
+//                 $point = $x." ".$y;
+
+//                 $zoneResult = $this->pointlocation->pointInPolygon(
+//                     $point,
+//                     $polygon,
+//                     true
+//                 );
+
+//                 return [
+//                     'success' => true,
+//                     'fmr_id'  => $fmrId,
+//                     'x'       => $x,
+//                     'y'       => $y,
+//                     'zone'    => $zoneResult
+//                 ];
+//             }
+//         }
+
+//         return [
+//             'success' => false,
+//             'message' => 'FMR not found'
+//         ];
+//     }
 
 
 //     /**

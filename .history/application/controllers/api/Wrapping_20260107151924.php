@@ -25,8 +25,6 @@ class Wrapping extends CI_Controller {
     public function ready()
     {
         $input = json_decode($this->input->raw_input_stream, true);
-
-        //testing mode
         $testMode = $this->input->get('test') == 'true';        
 
         $mac_address = $input['mac_address'] ?? null;
@@ -58,8 +56,8 @@ class Wrapping extends CI_Controller {
             "[IOT READY] mac_address={$mac_address}"
         );
 
-        // test check FMR by ID
-        // $fmrCheck = $this->checkFmrById(28);
+        //test check FMR by ID
+        //$fmrCheck = $this->checkFmrById(28);
 
         // //log untuk debugging
         // log_message('info', json_encode($fmrCheck));
@@ -69,6 +67,7 @@ class Wrapping extends CI_Controller {
 
         //testing mode
         if ($testMode) {
+            // paksa wrap dipanggil untuk testing
             $pollingResult = [
                 'status' => 'FMR_OUTSIDE',
                 'fmr_id' => 999,
@@ -199,7 +198,7 @@ class Wrapping extends CI_Controller {
                 ];
             }
 
-            //testing mode: paksa ada FMR inside
+            //testing fmr inside untuk wrapping
             if (empty($insideFmr)) {
                 $insideFmr[999] = [
                     'id' => 999,

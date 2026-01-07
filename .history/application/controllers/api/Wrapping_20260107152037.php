@@ -26,7 +26,7 @@ class Wrapping extends CI_Controller {
     {
         $input = json_decode($this->input->raw_input_stream, true);
 
-        //testing mode
+        //unutuk testing mode
         $testMode = $this->input->get('test') == 'true';        
 
         $mac_address = $input['mac_address'] ?? null;
@@ -69,6 +69,7 @@ class Wrapping extends CI_Controller {
 
         //testing mode
         if ($testMode) {
+            // paksa wrap dipanggil untuk testing
             $pollingResult = [
                 'status' => 'FMR_OUTSIDE',
                 'fmr_id' => 999,
@@ -199,7 +200,7 @@ class Wrapping extends CI_Controller {
                 ];
             }
 
-            //testing mode: paksa ada FMR inside
+            //testing fmr inside untuk wrapping
             if (empty($insideFmr)) {
                 $insideFmr[999] = [
                     'id' => 999,

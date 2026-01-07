@@ -280,7 +280,7 @@ class Wrapping extends CI_Controller {
     private function triggerWrap($macAddress)
     {
         //trigger melalui HTTP API
-        $iotUrl = base_url('api/wrapping/command');
+        $iotUrl = base_url('wrapping/command');
         $payload = [
             'mac_address' => $macAddress,
             'command'     => 'WRAP'

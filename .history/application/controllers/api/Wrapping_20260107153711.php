@@ -64,26 +64,6 @@ class Wrapping extends CI_Controller {
         // //log untuk debugging
         // log_message('info', json_encode($fmrCheck));
 
-        //testing mode
-        if ($testMode) {
-            $pollingResult = [
-                'status' => 'FMR_OUTSIDE',
-                'fmr_id' => 999,
-                'coordinate' => ['x'=>-60.0,'y'=>5.0],
-                'zone'=>'outside'
-            ];
-
-            // langsung trigger wrap
-            $wrapResult = $this->triggerWrap($mac_address);
-
-            return $this->response([
-                'success' => true,
-                'message' => 'READY status received (TEST MODE)',
-                'polling' => $pollingResult,
-                'wrap' => $wrapResult
-            ]);
-        }
-
         //start untuk polling
         $pollingResult = $this->pollingFmr();
 
@@ -280,7 +260,7 @@ class Wrapping extends CI_Controller {
     private function triggerWrap($macAddress)
     {
         //trigger melalui HTTP API
-        $iotUrl = base_url('api/wrapping/command');
+        $iotUrl = "http://localhost:8081/api/wrapping/command";
         $payload = [
             'mac_address' => $macAddress,
             'command'     => 'WRAP'
@@ -321,6 +301,7 @@ class Wrapping extends CI_Controller {
             'mac_address' => $macAddress,
             'status'      => 'WRAP_TRIGGERED',
             'call_status' => ($httpCode==200 ? 'TRANSMIT' : 'ERROR'),
+            'message'     => $response
         ]);
 
         return $iotResult;

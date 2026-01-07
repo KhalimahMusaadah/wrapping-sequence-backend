@@ -280,7 +280,7 @@ class Wrapping extends CI_Controller {
     private function triggerWrap($macAddress)
     {
         //trigger melalui HTTP API
-        $iotUrl = base_url('api/wrapping/command');
+        $iotUrl = "http://localhost:8081/api/wrapping/command";
         $payload = [
             'mac_address' => $macAddress,
             'command'     => 'WRAP'
@@ -321,6 +321,7 @@ class Wrapping extends CI_Controller {
             'mac_address' => $macAddress,
             'status'      => 'WRAP_TRIGGERED',
             'call_status' => ($httpCode==200 ? 'TRANSMIT' : 'ERROR'),
+            'message'     => $response
         ]);
 
         return $iotResult;

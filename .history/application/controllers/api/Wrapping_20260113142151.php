@@ -3,24 +3,13 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 
 class Wrapping extends CI_Controller {
 
-    // public function test_baseurl() {
-    //     echo "Base URL: " . base_url();
-    //     echo "<br>";
-    //     echo "Current URL: " . current_url();
-    //     echo "<br>";
-    //     echo "Site URL: " . site_url();
-    // }
-
     private $DEBUG_POLLING = false;
 
     public function __construct()
     {
         parent::__construct();
-        ini_set('serialize_precision', -1);
-        ini_set('precision', -1);
         $this->load->model('Wrapping_model');
         $this->load->library('Pointlocation');
-        $this->load->library('Lanxin_wrapper');
         header('Content-Type: application/json');
         header('Access-Control-Allow-Origin: *');
     }
@@ -38,7 +27,7 @@ class Wrapping extends CI_Controller {
         $input = json_decode($this->input->raw_input_stream, true);
 
         //testing mode 
-        $testMode = $input['test'] ?? true;        
+        $testMode = $input['test'] ?? false;        
 
         $mac_address = $input['mac_address'] ?? null;
         $status      = $input['status'] ?? null;
@@ -123,7 +112,7 @@ class Wrapping extends CI_Controller {
         $url = "http://10.8.15.226:4333/api/amr/onlineAmr?mapId=".$mapId;
 
         // tiap login ganti cookienya
-        $cookie = 'JSESSIONID=b73d9797-5f02-4cf2-9fa0-2babadedc8ab; userName=Developt';
+        $cookie = 'JSESSIONID=86c35a7e-7d1d-4245-8fe1-f5bdf7809901; userName=Developt';
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
@@ -171,11 +160,11 @@ class Wrapping extends CI_Controller {
         log_message('info', '[POLLING] START polling FMR wrapping zone');
 
         $polygon = [
-            "-61.57 3.403", //kiri bawah
-            "-61.57 6.2838", //kiri atas
-            "-59.17 6.2838", //kanan atas
-            "-59.17 3.403", //kanan bawah
-            "-61.57 3.403"
+            "-61.04 3.800",
+            "-61.04 6.2838",
+            "-59.698 6.2838",
+            "-59.698 3.800",
+            "-61.04 3.800"
         ];
 
         // Ambil semua FMR dari API
@@ -214,8 +203,8 @@ class Wrapping extends CI_Controller {
             if ($this->DEBUG_POLLING) {
                 $debugFmr[] = [
                     'id'   => $id,
-                    'x'    => round($x, 2),
-                    'y'    => round($y, 2),
+                    'x'    => $x,
+                    'y'    => $y,
                     'zone' => $zone
                 ];
             }
@@ -274,8 +263,8 @@ class Wrapping extends CI_Controller {
 
                     if ($this->DEBUG_POLLING) {
                         $result['coordinate'] = [
-                            'x' => round($x, 2),
-                            'y' => round($y, 2)
+                            'x' => $x,
+                            'y' => $y
                         ];
                         $result['zone'] = $zone;
                     }
@@ -330,7 +319,7 @@ class Wrapping extends CI_Controller {
 
         $this->Wrapping_model->insertIoTLog([
             'mac_address' => $macAddress,
-            'status'      => 'WRAP',
+            'status'      => 'WRAP_TRIGGERED',
             'call_status' => ($httpCode==200 ? 'TRANSMIT' : 'ERROR'),
         ]);
 
@@ -345,66 +334,6 @@ class Wrapping extends CI_Controller {
             'message' => 'Dummy IoT command received',
             'payload' => $input
         ]);
-    }
-
-    public function done()
-    {
-        $input = json_decode($this->input->raw_input_stream, true);
-
-        $mac = $input['mac_address'] ?? null;
-        $status = $input['status'] ?? null;
-
-        if(!$mac || $status!='WRAPPING_DONE'){
-            return $this->response([
-                'success'=>false,
-                'message'=>'invalid payload'
-            ],400);
-        }
-
-        $this->Wrapping_model->insertIoTLog([
-            'mac_address'=>$mac,
-            'status'=>'WRAPPING_DONE',
-            'call_status'=>'RECEIVED'
-        ]);
-
-
-        $lastCounter = $this->Wrapping_model->getLastCounterToday($mac);
-        $lastSequence = $this->Wrapping_model->getLastSequence($mac);
-
-        $counter = $lastCounter + 1;
-
-        $maxSeq = 6;
-        
-        if ($lastSequence == 0){
-            $sequence = 1;
-        } else {
-            $sequence = ($lastSequence % $maxSeq) + 1;
-        }
-
-        $rcsResult = $this->lanxin_wrapper->triggerRCS($mac, 26, $sequence);
-
-        $this->Wrapping_model->insertSequence([
-            'mac_address'=>$mac,
-            'counter'=>$counter,
-            'sequence'=>$sequence,
-            'taskId'=>$rcsResult['task_id'] ?? 0,
-        ]);
-
-        $this->Wrapping_model->insertIoTLog([
-            'mac_address' => $mac,
-            'status' => 'RCS_TRIGGER_' . ($rcsResult['success'] ? 'SUCCESS' : 'FAILED'),
-            'call_status' => 'TRANSMIT',
-        ]);
-
-        return $this->response([
-            'success'=>true,
-            'message'=>'Wrapping Done received',
-            'counter'=>$counter,
-            'last_sequence'=>$lastSequence,
-            'sequence'=>$sequence,
-            'rcs_trigger'=>$rcsResult
-        ]);
-        
     }
 
 
@@ -487,10 +416,10 @@ class Wrapping extends CI_Controller {
     // }
 
 
-    /**
-     * check fmr hardcore
-     * GET api/wrapping/check_fmr
-     */
+    // /**
+    //  * check fmr hardcore
+    //  * GET api/wrapping/check_fmr
+    //  */
     // public function check_fmr()
     // {
     //     //polygon zona wrapping

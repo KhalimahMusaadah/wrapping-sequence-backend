@@ -71,6 +71,8 @@ class Wrapping extends CI_Controller {
             'success' => true,
             'message' => 'PALLET_DETECTED status received',
         ]);
+
+
     }
 
     /**

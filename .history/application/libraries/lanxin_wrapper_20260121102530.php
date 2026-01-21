@@ -143,4 +143,14 @@ class Lanxin_wrapper {
         
         return null;
     }
+    
+    public function getWorkAreas($plant = "")
+    {
+        return $this->task->WorkArea($plant);
+    }
+    
+    public function getTaskTemplates($area = 0)
+    {
+        return $this->task->TaskTemplate($area);
+    }
 }
